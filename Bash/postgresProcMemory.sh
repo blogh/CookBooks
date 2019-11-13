@@ -13,5 +13,7 @@ do
         MEM=`expr $MEM_PCLEAN + $MEM_PDIRTY`
         TOTAL=`expr $TOTAL + $MEM`
         echo "[$PID][$CMD][$MEM kB]"
-done < <(ps -u postgres o pid= o cmd= | grep 'postgres:' | grep -v grep)
+done < <(pgrep -a "postmaster")
+#done < <(ps -u postgres o pid= o cmd= | grep 'postgres:' | grep -v grep)
+
 echo "[Total][$TOTAL kB]"
