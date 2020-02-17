@@ -92,19 +92,6 @@ If transparent hugepage are used, the kernel will transform contiguous
 allocation of memory into HP. Il cannot be used for PostgreSQL, therefore THP
 should be disabled on a PostgreSQL server.
 
-Add the following to /etc/rc.local or in the @reboot line of crontab :
-
-```
-echo never > /sys/kernel/mm/transparent_hugepage/enabled
-echo never > /sys/kernel/mm/transparent_hugepage/defrag
-```
-
-Modify grub configuration :
-
-```
-transparent_hugepage=never
-```
-
 It is possible to check the usage of memory of a process : 
 
 ```
@@ -124,6 +111,21 @@ The memory allocated with hugepage cannot be swapped which is good for
 PostgreSQL's `shared_buffers`. Since PG's shared memory is visible to all backends
 the PTE is duplicated by the number of backends. For a 8Gb shared buffer size,
 it represents 16Mb per backend.
+
+How to do it :
+
+* Add the following to /etc/rc.local or in the @reboot line of crontab :
+
+  ```
+  echo never > /sys/kernel/mm/transparent_hugepage/enabled
+  echo never > /sys/kernel/mm/transparent_hugepage/defrag
+  ```
+
+* Modify grub configuration :
+ 
+   ```
+   transparent_hugepage=never
+   ```
 
 ## Pg & memory
 
@@ -180,12 +182,23 @@ Where :
 
 ### No Huge pages
 
-How to calculate : 
+To compute `Commitimit` :  
+
 ```
 CommitLimit = swap_size + ( RAM * overcommit_ratio / 100 )
+
+
+To compute `overcommit_ratio` :
+
 ```
 overcommit_ratio = ( CommitLimit - swap_size ) * 100 / RAM
+```
 
+Or if the swapsapve >> 1Gb (usually not advised for Pg) (for a target of 80%) : 
+
+```
+overcommit_ratio = 80 - 100 (swap_size / RAM_size)
+```
 
 For PostgreSQL : 
 
@@ -197,17 +210,10 @@ vm.overcommit_ratio = 80		# 20% of the memory is kept for the
 					# applications
 vm.overcommit_kbytes = 80% of memory
 ```
-
-With PostgreSQL, a huge swap is usually not advised but if swap is >> 1G, then
-(for a target of 80%) : 
-
-```
-overcommit_ratio = 80 - 100 (swap_size / RAM_size)
-```
-
 ### Huge pages
 
-Huge pages are not part of CommitLimit :
+Huge pages are not part of CommitLimit, therefore to compute CommitLimit :
+
 ```
 CommitLimit = swap_size + ( RAM - HP_Total_Size ) * overcommit_ratio / 100)
 
@@ -215,19 +221,9 @@ HP_Total_Size = (vm.nr_hugepages + vm.nr_overcommit_hugepages) * Hugepagesize
 Hugepagesize = 2Mb
 ```
 
-Where :
-```
-$ grep -e "^Huge*" /proc/meminfo 
-HugePages_Total:       0
-HugePages_Free:        0
-HugePages_Rsvd:        0
-HugePages_Surp:        0
-Hugepagesize:       2048 kB
-Hugetlb:               0 kB
-```
-
 To compute `overcommit_ratio` :
-``
+
+```
 overcommit_ratio = 100 * ( CommitLimit - swap_size ) / ( RAM - HP_Total_Size )
 
 HP_Total_Size = (vm.nr_hugepages + vm.nr_overcommit_hugepages) * Hugepagesize
