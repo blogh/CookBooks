@@ -3,6 +3,7 @@
 ## How to modify 
 
 Modify one of these files : 
+
 * /etc/sysctl.conf
 * /etc/sysctl.d/10-postgresql.conf.
 
@@ -25,11 +26,6 @@ For PostgreSQL :
 vm.swappiness = 10
 ```
 
-Hugepages requiers a processor compatible with pse:
-```
-pse /proc/cpuinfo 
-```
-
 ## Huge Page
 
 When a program tries to access it's memory the processor converts the address
@@ -44,7 +40,13 @@ zone.
 When a process is swapped from processor, the TLB must be flushed and the TLB
 of the next process must be copied.
 
+Hugepages requiers a processor compatible with pse:
+```
+pse /proc/cpuinfo 
+```
+
 The following parameters govern the use of hugepages : 
+
 * `nr_hugepages` : Change the minimum size of the hugepage pool.
 * `nr_hugepages_mempolicy` : Change the size of the hugepage pool at run-time
   on a specific set of NUMA nodes.
@@ -73,6 +75,7 @@ Hugetlb:               0 kB
 ```
 
 Where : 
+
 * `HugePages_Total` is the size of the pool of huge pages.
 * `HugePages_Free` is the number of huge pages in the pool that are not yet
   allocated.
@@ -112,6 +115,7 @@ HugetlbPages:	       0 kB
 ```
 
 Where : 
+
 * `RssShmem` show the allocated shared memory.
 * `VmPTE` is the pagination table.
 * `HugetlbPages` is the memory allocated in Huge Pages.
@@ -124,6 +128,7 @@ it represents 16Mb per backend.
 ## Pg & memory
 
 The parameter `vm.overcommit_memory` controls the overcommit policy : 
+
 0. Heuristic overcommit handling.  
 1. Always overcommit.  
 2. Don't overcommit.  The total address space commit for the system is not
@@ -144,6 +149,7 @@ Committed_AS:    9295072 kB
 ```
 
 Where :
+
 * `CommitLimit`: Based on the overcommit ratio (`vm.overcommit_ratio`), this is
   the total amount of  memory currently available to be allocated on the
   system. This limit is only adhered to if strict overcommit accounting is
