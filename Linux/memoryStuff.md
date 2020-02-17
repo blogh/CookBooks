@@ -182,11 +182,11 @@ Where :
 
 ### No Huge pages
 
-To compute `Commitimit` :  
+To compute `CommitLimit` :  
 
 ```
 CommitLimit = swap_size + ( RAM * overcommit_ratio / 100 )
-
+```
 
 To compute `overcommit_ratio` :
 
