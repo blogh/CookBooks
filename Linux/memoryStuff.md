@@ -114,7 +114,7 @@ it represents 16Mb per backend.
 
 How to do it :
 
-* Add the following to /etc/rc.local or in the @reboot line of crontab :
+* Add the following to `/etc/rc.local` :
 
   ```
   echo never > /sys/kernel/mm/transparent_hugepage/enabled
@@ -122,9 +122,22 @@ How to do it :
   ```
 
 * Modify grub configuration :
- 
+
+
+   Edit `/etc/default/grub` : 
+   
    ```
-   transparent_hugepage=never
+   GRUB_CMDLINE_LINUX_DEFAULT="quiet transparent_hugepage=never"
+   ```
+
+   Reload the conf : 
+   
+   ```
+   $ sudo update-grub
+   Generating grub configuration file ...
+   Found linux image: /boot/vmlinuz-4.9.0-7-amd64
+   Found initrd image: /boot/initrd.img-4.9.0-7-amd64
+   done
    ```
 
 ## Pg & memory
