@@ -47,4 +47,7 @@ find . -name "postgresql-2015-09-21*" -exec tar -rvf /bkp01/log_postgresql-2015-
 tar zcvf test.tar.gz $(find -name "*.txt" |sort )
 ```
 		
-
+Find with regexp and print only the name:
+`
+for t in $(find . -regex "^.*/[0-9]*" -type f -printf "%f\n"); do oid2name -f$t | grep $t | grep -v toast; done
+`
