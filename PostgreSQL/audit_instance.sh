@@ -9,6 +9,8 @@ test -d "$PGDATA" || \
     exit -1;
 }
 
+test -z "$2" || export PGPORT=$2
+
 which pg_controldata >/dev/null 2>&1 || \
 {
     echo "which ne connaît pas pg_controldata. Merci de corriger la variable PATH."
@@ -185,7 +187,7 @@ for d in $(psql -XAtc "SELECT datname
     WHERE datname NOT IN ('template0','template1') 
     ORDER BY 1")
 do
-    PGDATABASE=$d
+    export PGDATABASE=$d
     ALLOWCONN=$(psql -XAtc "SELECT datallowconn FROM pg_database WHERE datname = '$d'" -d postgres)
 
     if [[ "$ALLOWCONN" != "t" ]]; then 
@@ -319,7 +321,7 @@ select nspname,
   join pg_roles r on r.oid=n.nspowner
   left join pg_proc p on n.oid=p.pronamespace
  group by nspname, rolname
- order by 1, 2;"
+ order by 1, 2;
 EOF
 fi
 

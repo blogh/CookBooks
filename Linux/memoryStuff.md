@@ -207,7 +207,7 @@ To compute `overcommit_ratio` :
 overcommit_ratio = ( CommitLimit - swap_size ) * 100 / RAM
 ```
 
-Or if the swapsapve >> 1Gb (usually not advised for Pg) (for a target of 80%) : 
+Or if the swapspace >> 1Gb (usually not advised for Pg) (for a target of 80%) :
 
 ```
 overcommit_ratio = 80 - 100 (swap_size / RAM_size)
