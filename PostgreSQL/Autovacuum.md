@@ -32,6 +32,8 @@ bit in length. Therefore the requiered memory is :
 (dead lines * autovacuum_vacuum_scale_factor + autovacuum_vacuum_threshold) * TID Size
 ```
 
+Consider adding a little memory to have some slack.
+
 http://rhaas.blogspot.com/2019/01/how-much-maintenanceworkmem-do-i-need.html
 
 # `autovacuum_naptime`
