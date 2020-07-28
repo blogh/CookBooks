@@ -52,3 +52,22 @@ enought for the cleanup to last less than `autovacuum_naptime`, it can be a
 good idea to reduce the value of this parameter.
 
 http://rhaas.blogspot.com/2019/02/tuning-autovacuumnaptime.html
+
+# Collect stats from the autovacuum on a table with `awk`
+
+```
+export TABLE="schema.table"
+export LOGFILE="postgresql-9.3-main.log"
+
+awk -r '
+ BEGIN {
+   print "datetime;pages removed;pages remain;tuples removed;tuple remain;tuple dead"
+ }
+ /LOG:  automatic vacuum of table "$TABLE/{
+   d=$1 " " $2;
+   getline; pr=$2; pn=$4;
+   getline; tr=$2;tn=$4; td=$6;
+   getline; getline;
+   print d ";" pr ";" pn ";" tr ";" tn ";" td
+}' $LOGFILE
+```
