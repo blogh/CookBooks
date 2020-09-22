@@ -48,15 +48,48 @@ echo "## Configuration"
 echo
 echo "### ... du moteur"
 echo
-test -f $PGDATA/postgresql.conf && cat $PGDATA/postgresql.conf || echo "WARNING: no postgresql.conf"
+if [[ -f "$PGDATA/postgresql.conf" ]]; then
+	echo "#### $PGDATA/postgresql.conf"
+	cat $PGDATA/postgresql.conf
+else
+	CONFFILE=$(psql -XtAc "SELECT setting FROM pg_settings WHERE name = 'config_file';")
+	if [[ -f "$CONFFILE" ]]; then
+		echo "#### $CONFFILE"
+		cat $CONFFILE
+	else
+		echo "WARNING: postgresql.conf not found"
+	fi
+fi
 echo
 cat $PGDATA/postgresql.auto.conf
 echo
 echo "### ... des accès"
 echo
-test -f $PGDATA/pg_hba.conf && cat $PGDATA/pg_hba.conf || echo "WARNING: pg_hba not found"
+if [[ -f "$PGDATA/pg_hba.conf" ]]; then
+	echo "#### $PGDATA/pg_hba.conf"
+	cat $PGDATA/pg_hba.conf
+else
+	HBAFILE=$(psql -XtAc "SELECT setting FROM pg_settings WHERE name = 'hba_file';")
+	if [[ -f "$HBAFILE" ]]; then
+		echo "#### $HBAFILE"
+		cat $HBAFILE
+	else
+		echo "WARNING: pg_hba not found"
+	fi
+fi
 echo
-test -f $PGDATA/pg_ident.conf && cat $PGDATA/pg_ident.conf || echo "WARNING: pg_ident not found"
+if [[ -f "$PGDATA/pg_ident.conf" ]]; then
+	echo "#### $PGDATA/pg_ident.conf"
+	cat $PGDATA/pg_ident.conf
+else
+	IDENTFILE=$(psql -XtAc "SELECT setting FROM pg_settings WHERE name = 'ident_file';")
+	if [[ -f "$IDENTFILE" ]]; then
+		echo "#### $IDENTFILE"
+		cat $IDENTFILE
+	else
+		echo "WARNING: pg_ident not found"
+	fi
+fi
 echo
 echo "### ... de la restauration"
 echo

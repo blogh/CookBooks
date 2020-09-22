@@ -29,6 +29,8 @@ echo
 
 echo "# Système d'exploitation"
 echo
+test -f /etc/os-release && cat /etc/os_release
+echo
 test -f /etc/debian-release && cat /etc/debian-version
 echo
 test -f /etc/redhat-release && cat /etc/redhat-release
