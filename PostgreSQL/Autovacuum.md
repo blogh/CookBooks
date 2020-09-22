@@ -71,3 +71,26 @@ awk -r '
    print d ";" pr ";" pn ";" tr ";" tn ";" td
 }' $LOGFILE
 ```
+
+# Wraparound and 'autovacuum_freeze_max_age'
+
+Tables with lines older than 'autovacuum_freeze_max_age' need to be vacuumed to
+prevent a freeze of the transaction when the 1 million transaction stock is
+reached.
+
+List table (relkind 'r') or materialized view ('m') with a relfrozenxid older
+than `autovacuum_freeze_max_age`.
+
+```
+SELECT c.oid::regclass as table_name, 
+       pg_size_pretty(pg_table_size(c.oid)),
+       greatest(age(c.relfrozenxid),
+       age(t.relfrozenxid)) as age
+FROM pg_class c
+LEFT JOIN pg_class t ON c.reltoastrelid = t.oid
+WHERE c.relkind IN ('r', 'm') 
+  AND greatest(age(c.relfrozenxid),age(t.relfrozenxid)) > current_setting('autovacuum_freeze_max_age')::integer
+ORDER BY pg_table_size(c.oid);
+```
+
+
