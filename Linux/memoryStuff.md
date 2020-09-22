@@ -114,6 +114,15 @@ it represents 16Mb per backend.
 
 How to do it :
 
+* `/etc/crontab` :
+
+  ```
+  # désactivation des Transparent Huge Pages
+  @reboot         root    echo never > /sys/kernel/mm/transparent_hugepage/enabled
+  @reboot         root    echo never > /sys/kernel/mm/transparent_hugepage/defrag
+  ```
+
+
 * Add the following to `/etc/rc.local` :
 
   ```
