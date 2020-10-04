@@ -2,7 +2,7 @@
 
 ## Why Slony
 
-* <> versions
+* <> versions of PostgreSQL
 * <> hardware and operation systems
 * replicates only a subset of the data
 
@@ -26,8 +26,8 @@
 * Providers / Subscriber :  A can be provider and subscriber in cascading
   replication.  The origin cannot be a subscriber.
 
-* Slon daemon : process that manages replcation for the node. It is designed to
-  process replication events :
+* Slon daemon : process that manages replication for the node. It is designed
+  to process replication events :
   + configuration event : via the slonik script
   + SYNC event : Updates to tables regrouped together. (group of transactions)
 * Slonik : command processor for configuration uppdate.
@@ -51,8 +51,8 @@ Scripts can be used with "slonik execute script" to propagate DDL changes.
 
 Configuration & Application changes are propagated thru events.
 
-Events are inserted in the event queue (sl_event table on the node). The events
-are sent to all the remote slon's & then to slon's remoteWorker.
+Events are inserted in the event queue (`sl_event` table on the node). The
+events are sent to all the remote slon's & then to slon's `remoteWorker`.
 
 Event id = (Node id, sequence number)
 
@@ -60,27 +60,27 @@ Event id = (Node id, sequence number)
 
 SYNC events are used to transfert application data from one node to the next.
 
-Modifications are recorded in the sl_log_1 and sl_log_2 tables. The
-localistener thread periodically creates a SYNC event that encompasses the
+Modifications are recorded in the `sl_log_1` and `sl_log_2` tables. The
+`locallistener` thread periodically creates a SYNC event that encompasses the
 events not yet commited.
 
-The remoteWroker thread of for a slon processes the SYNC and queries all the
+The `remoteWorker` thread of for a slon processes the SYNC and queries all the
 rows from the log tables that are encompassed by the SYNC. The data is then
 applied on the subscriber.
 
 ### Confirmation
 
-When an event is processed by a remote node a line is added to sl_confirm. The
-message is transferred back ti all other nodes in the cluster.
+When an event is processed by a remote node a line is added to `sl_confirm`.
+The message is transferred back to all other nodes in the cluster.
 
 ### Event cleanup
 
-The slon cleanup thread periodiccallu runs a function that deletes all but the
-most recently confirmed event for each origin/reveiver pair. (sl_event ?)
+The `slon cleanup` thread periodically runs a function that deletes all but
+the most recently confirmed event for each origin/reveiver pair. (sl_event ?)
 
-Then old SYNC events are deleted in sl_confirm.
+Then old SYNC events are deleted in `sl_confirm`.
 
-Then the data from sl_log_1 and sl_log_2 tables.
+Then the data from `sl_log_1` and `sl_log_2` tables.
 
 ### Slonik and Event confirmation
 
@@ -91,9 +91,10 @@ processed.
 
 # Scripts and queries
 
-## Get tables without PK for general case
+## Get tables without PK
 
 Get tables without PK :
+
 ```
 psql -h $MASTERHOST -p $MASTERPORT -d $MASTERDBNAME -U $REPLICATIONUSER <<_EOF_
 SELECT n.nspname, c.relname
@@ -107,9 +108,16 @@ ORDER BY n.nspname, c.relname;
 _EOF_
 ```
 
-## Create the list of set commands
+They can then be added with :
+
+```
+ALTER TABLE <schema>.<table> ADD COLUMN <id_column> SERIAL PRIMARY KEY;
+```
+
+## Create the list of set commands (for the diy method)
 
 Get the list tables :
+
 ```
 psql -h $MASTERHOST -p $MASTERPORT -d $MASTERDBNAME -U $REPLICATIONUSER <<_EOF_
 SELECT format('set add table (set id=1, origin=1, id=%s, fully qualified name = ''%I.%I'');',
@@ -125,6 +133,7 @@ _EOF_
 ```
 
 Get the list of sequences :
+
 ```
 psql -h $MASTERHOST -p $MASTERPORT -d $MASTERDBNAME -U $REPLICATIONUSER <<_EOF_
 SELECT format('set add sequence (set id=1, origin=1, id=%s, fully qualified name = ''%I.%I'');',
@@ -139,9 +148,10 @@ ORDER BY n.nspname, c.relname;
 _EOF_
 ```
 
-## Slonik Script to create a Slony-I Cluster
+## Slonik Script to create a Slony-I Cluster (for the diy method)
 
-script create.sh
+Script create.sh
+
 ```
 #!/bin/sh
 
@@ -187,9 +197,10 @@ store path (server = 2, client = 1, conninfo='host=$SLAVEHOST port=$SLAVEPORT db
 _EOF_
 ```
 
-## Slonik script to subscribe Nodes
+## Slonik script to subscribe Nodes (for the diy method)
 
 script subscribe.sh
+
 ```
 #!/bin/sh
 slonik <<_EOF_
@@ -214,9 +225,10 @@ subscribe set ( id = 1, provider = 1, receiver = 2, forward = no);
 _EOF_
 ```
 
-## List tables
+## List tables & indexes to compare number of lines
 
-Liste des tables avec nombre estimé de lignes et taille réelle
+List tables with estimated number of lines and sized :
+
 ```
 SELECT n.nspname, c.relname, reltuples, pg_table_size(c.oid)
 FROM pg_class c
@@ -226,7 +238,8 @@ WHERE relkind='r'
 ORDER BY n.nspname, c.relname;
 ```
 
-Liste des index avec nombre estimé de lignes et taille réelle
+List indexes with estimated number of lines and sized :
+
 ```
 SELECT n.nspname, c.relname, reltuples, pg_table_size(c.oid)
 FROM pg_class c
@@ -236,10 +249,11 @@ WHERE relkind='i'
 ORDER BY n.nspname, c.relname;
 ```
 
-Liste des tables avec nombre réel de lignes et taille réelle
+Liste tables with real number of lines and real size :
+
 ```
 SET client_min_messages TO 'LOG';
-DO LANGUAGE PLPGSQL $$
+DO LANGUAGE PLPGSQL
 DECLARE
   rec record;
   req text;
@@ -267,6 +281,7 @@ $$;
 ### Server 1
 
 Install binaries
+
 ```
 yum install -y https://download.postgresql.org/pub/repos/yum/reporpms/EL-7-x86_64/pgdg-redhat-repo-latest.noarch.rpm
 yum install -y postgresql95-server slony1-95.x86_64
@@ -281,7 +296,8 @@ systemctl enable postgresql-9.5
 systemctl start postgresql-9.5
 ```
 
-Config PostgreSQL user :
+Config PostgreSQL user (`.bashrc` / `.bash_profile`):
+
 ```
 cat <<_EOF_ >>~postgres/.bash_profile
 export PATH=$PATH:$HOME/.local/bin:$HOME/bin:/usr/pgsql-9.5/bin
@@ -304,6 +320,7 @@ _EOF_
 ```
 
 Config PostgreSQL :
+
 ```
 cp $PGDATA/pg_hba.conf $PGDATA/pg_hba.conf.old
 cat <<_EOF_ >$PGDATA/pg_hba.conf
@@ -318,13 +335,15 @@ psql -c "SELECT pg_reload_conf();"
 ```
 
 Cleanup :
+
 ```
-dropdb -p $MASTERPORT $MASTERDBNAME
+dropdb   -p $MASTERPORT $MASTERDBNAME
 dropuser -p $MASTERPORT $PGBENCHUSER
 dropuser -p $MASTERPORT $REPLICATIONUSER
 ```
 
-Setup :
+Setup (**change password as needed**):
+
 ```
 psql -p $MASTERPORT -c "CREATE ROLE $PGBENCHUSER WITH PASSWORD '$PGBENCHUSER' LOGIN;"
 psql -p $MASTERPORT -c "CREATE ROLE $REPLICATIONUSER WITH PASSWORD '$REPLICATIONUSER' LOGIN SUPERUSER;"
@@ -352,6 +371,32 @@ ALTER TABLE pgbench_history
 
 COMMIT;
 _EOF_
+```
+
+or with a one liner :
+
+```
+ALTER TABLE public.pgbench_history ADD COLUMN id SERIAL PRIMARY KEY;
+```
+
+**Alternative : Compilation**
+
+Download the perl stuff :
+
+```
+apt-get install libpg-perl libdbd-pg-perl
+```
+
+Compile  :
+
+```
+git clone git://git.postgresql.org/git/slony1-engine.git
+cd slony1-engine/
+git checkout REL_2_2_8
+autoconf
+./configure --with-pgconfigdir=/usr/lib/postgresql/9.1/bin --with-perltools
+make
+sudo make install
 ```
 
 ### Server 2
@@ -425,7 +470,35 @@ pg_dump -h $MASTERHOST -p $MASTERPORT -d $MASTERDBNAME -U $REPLICATIONUSER --exc
    psql -p $SLAVEPORT
 ```
 
-## Slonik scripts
+## Prerequ on Debian
+
+Install perl package :
+
+```
+apt-get install libpg-perl libdbd-pg-perl autoconf
+```
+
+I also did compile postgresql so I had (need  to cehck what was necessary):
+
+```
+sudo apt-get install build-essential libreadline-dev \
+     zlib1g-dev flex bison libxml2-dev libxslt-dev \
+     libssl-dev libxml2-utils xsltproc wget git
+``
+
+Compile with perl tools :
+
+```
+git clone git://git.postgresql.org/git/slony1-engine.git
+cd slony1-engine/
+git checkout REL_2_2_8
+autoconf
+./configure --with-pgconfigdir=/usr/lib/postgresql/9.1/bin --with-perltools
+make
+sudo make install
+```
+
+## Slonik scripts (diy)
 
 ### Server 1
 
@@ -481,6 +554,7 @@ systemctl status slony1-22-12
 ### Server 1
 
 Build the configuration :
+
 ```
 slonik_build_env \
    -node $MASTERHOST:$MASTERDBNAME:$REPLICATIONUSER::$MASTERPORT \
@@ -488,7 +562,12 @@ slonik_build_env \
    -schema public > /etc/slony1-95/slony_tools_bench.conf
 ```
 
-Add some Configuration to the file :
+There was a bug here for pg > 11
+(https://github.com/ssinger/slony1-engine/issues/19) (FIXED)
+
+Add some Configuration to the file (Note : dollars are escaped except for those
+that need to be replaced by their value):
+
 ```
 cat >> /etc/slony1-95/slony_tools_bench.conf << _EOF_
 
@@ -513,11 +592,13 @@ _EOF_
 ```
 
 Create the cluster :
+
 ```
 slonik_init_cluster --config /etc/slony1-95/slony_tools_bench.conf | slonik
 ```
 
 Configure the slon daemon for a service:
+
 ```
 mkdir -p /etc/slony1-95/$CLUSTERNAME
 cat >> /etc/slony1-95/$CLUSTERNAME/slon.conf << _EOF_
@@ -526,20 +607,45 @@ conn_info='host=/var/run/postgresql port=$MASTERPORT user=postgres dbname=$MASTE
 _EOF_
 ```
 
+Note : you might have to modify the init.d script
+
+* the init.d script can be taken from `slony1-engine/tools/start_slon.sh`
+* SLON_BIN_PATH, SLON_CONF and SLON_LOG have to be updated in the service
+script
+* it might be necessary to add : `pid_file='<path to pid>'`
+* You migth have to create the links in `/etc/rc3.d`.
+
 Configure the slon daemon for systemctl
-You might have to modify : /usr/lib/systemd/system/slony1-22-95.service
+
 ```
 systemctl daemon-reload
 systemctl start slony1-22-95
 systemctl status slony1-22-95
 ```
 
+Note : You might have to modify : /usr/lib/systemd/system/slony1-22-95.service
+
+* The SLONCONNINFO was broken for me I had to move the quotes : 
+
+  ```
+  Environment="SLONCONNINFO=host=localhost port=5432 user=slony dbname=pgbench"`   
+  ```
+
+* The SLONCLUSTERNAME might have to be changed for slony to find the schema in
+  the database :
+
+  ```
+  Environment=SLONCLUSTERNAME=migration_pg91_pg12
+  ```
+
 Create a set and add tables to it :
+
 ```
 slonik_create_set --config /etc/slony1-95/slony_tools_bench.conf set_all | slonik
 ```
 
-Subscribe node 2 to the set : 
+Subscribe node 2 to the set :
+
 ```
 slonik_subscribe_set --config /etc/slony1-95/slony_tools_bench.conf set_all node2 | slonik
 ```
@@ -548,6 +654,7 @@ Copy the file /etc/slony1-95/slony_tools_bench.conf on the other node
 /etc/slony1-12/slony_tools_bench.conf.
 
 Checks :
+
 ```
 psql -h $MASTERHOST -p $MASTERPORT -d $MASTERDBNAME -U $REPLICATIONUSER << _EOF_
 SET search_path TO _slon_pg95_pg12;
@@ -560,26 +667,29 @@ SELECT * FROM sl_status;
 _EOF_
 ```
 
-If you use systemd, traces will be in /var/log/syslog or /var/log/messages.
+If you use systemd, traces will be in `/var/log/syslog` or `/var/log/messages`.
 
 ### Server 2
 
-Configure the slon daemon for a service:
-```
-mkdir -p /etc/slony1-12/$CLUSTERNAME
-cat >> /etc/slony1-12/$CLUSTERNAME/slon.conf <<_EOF_
-cluster_name='$CLUSTERNAME'
-conn_info='host=/var/run/postgresql port=$MASTERPORT user=postgres dbname=$MASTERDBNAME'
-_EOF_
-```
+Configure the slone daemon on the second node (more details above) :
 
-Configure the slon daemon for systemctl
-You might have to modify : /usr/lib/systemd/system/slony1-22-12.service
-```
-systemctl daemon-reload
-systemctl start slony1-22-12
-systemctl status slony1-22-12
-```
+* for a service:
+
+  ```
+  mkdir -p /etc/slony1-12/$CLUSTERNAME
+  cat >> /etc/slony1-12/$CLUSTERNAME/slon.conf <<_EOF_
+  cluster_name='$CLUSTERNAME'
+  conn_info='host=/var/run/postgresql port=$MASTERPORT user=postgres dbname=$MASTERDBNAME'
+  _EOF_
+  ```
+
+* for systemctl : You might have to modify : /usr/lib/systemd/system/slony1-22-12.service
+
+  ```
+  systemctl daemon-reload
+  systemctl start slony1-22-12
+  systemctl status slony1-22-12
+  ```
 
 # Admin
 
@@ -590,10 +700,13 @@ systemctl status slony1-22-12
 3) Merge the new set to the old one
 
 Use the commands :
+
 * slonik_create_set
 * slonik_merge_sets
 
-Slonik script :
+Slonik script (pay attention to set id and table ids when adding tables to a
+set) :
+
 ```
 slonik <<_EOF_
 cluster name = $CLUSTERNAME;
@@ -610,6 +723,7 @@ _EOF_
 ```
 
 Queries to get the maximum id for tables and sets :
+
 ```
 psql -p $MASTERPORT -At -c "SELECT max(tab_id) FROM _slon_pg95_pg12.sl_table ;"  $MASTERDBNAME
 psql -p $MASTERPORT -At -c "SELECT max(set_id) FROM _slon_pg95_pg12.sl_set ;"  $MASTERDBNAME
@@ -643,12 +757,14 @@ _EOF_
 * Subscribe the node to the relevant sets
 
 The perl tools to use are :
+
 ```
 slonik_add_node --config <config> <new node> <event node>
 slonik_subscribe_set --config <config> <set name> <node>
 ```
 
-To add the node the slonik script has to store the node and add the paths : 
+To add the node the slonik script has to store the node and add the paths :
+
 ```
 # ADD NODE
 cluster name = slon_pg95_pg12;
@@ -670,7 +786,6 @@ cluster name = slon_pg95_pg12;
 
 After that, it is necessary to subscribe to the set on the new node.
 
-
 BUG ?
 * slonik_failover node1 => node2
 * slonik_drop_node node1
@@ -689,21 +804,24 @@ BUG ?
 ## Remove a replication node
 
 Two ways depending on what you want :
+
 * drop node : removes the slony schema and tell the other nodes that the node
   is gone
 * uninstall node : removes the slony schema from the node
 
 Commands :
+
 * slonik_drop_node
 * slonik_uninstall_nodes
 
-
 Perl tools to drop a node :
+
 ```
 slonik_drop_node --config <path_to_config> <node> <origin>
 ```
 
 Slonik script to drop the node 2:
+
 ```
 slonik <<_EOF_
 cluster name = $CLUSTERNAME;
@@ -714,13 +832,14 @@ cluster name = $CLUSTERNAME;
 _EOF_
 ```
 
- 
 Perl tools to uninstall all node (cannot target one):
+
 ```
 slonik_uninstall_nodes --config <path_to_config>
 ```
 
-Slonik scropt to uninstall the node 1 :
+Slonik script to uninstall the node 1 :
+
 ```
 slonik <<_EOF_
 cluster name = $CLUSTERNAME;
@@ -746,11 +865,13 @@ _EOF_
   * Move the set
 
 Command:
+
 ```
 slonik_move_set --config <path_to_config> <set> <origin> <backup>
 ```
 
 Slonik script to move set 1 from node 1 to node 2:
+
 ```
 slonik <<_EOF_
 cluster name = $CLUSTERNAME;
@@ -771,10 +892,14 @@ _EOF_
 ```
 
 It is better to modify the configuration is you dont plan to switch back
-quickly.  You can either edit the file or regenerate part of the configuration
+quickly. You can either edit the file or regenerate part of the configuration
 with `slonik_build_env`.
 
+There was a bug here for pg > 11
+(https://github.com/ssinger/slony1-engine/issues/19) (FIXED)
+
 Check post migration :
+
 ```
 psql -h $MASTERHOST -p $MASTERPORT -d $MASTERDBNAME -U $REPLICATIONUSER << _EOF_
 SET search_path TO _slon_pg95_pg12;
@@ -796,12 +921,14 @@ _EOF_
 * Drop the old nodes
 
 Use perl tools to perform the operation :
+
 ```
 slonik_failover --config <config> <dead node> <target>
 slonik_drop_node --config <path_to_config> <node> <origin>
 ```
 
 The slonik script for the failover is the following
+
 ```
 cluster name = slon_pg95_pg12;
  node 1 admin conninfo='host=10.20.60.50 dbname=pgbench user=slony port=5432';
@@ -816,6 +943,7 @@ cluster name = slon_pg95_pg12;
 ```
 
 The slonik script for the failover is the following
+
 ```
 cluster name = slon_pg95_pg12;
  node 1 admin conninfo='host=10.20.60.50 dbname=pgbench user=slony port=5432';
@@ -823,5 +951,4 @@ cluster name = slon_pg95_pg12;
   drop node (id = 1, event node = 2);
   echo 'dropped node 1 cluster'
 ```
-
 
