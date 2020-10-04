@@ -402,6 +402,7 @@ sudo make install
 ### Server 2
 
 Install binaries :
+
 ```
 yum install -y https://download.postgresql.org/pub/repos/yum/reporpms/EL-7-x86_64/pgdg-redhat-repo-latest.noarch.rpm
 yum install -y postgresql12-server slony1-12.x86_64
@@ -418,6 +419,7 @@ systemctl start postgresql-12
 ```
 
 Config PostgreSQL user :
+
 ```
 cat <<_EOF_ >>~postgres/.bash_profile
 export PATH=$PATH:$HOME/.local/bin:$HOME/bin:/usr/pgsql-12/bin
@@ -439,6 +441,7 @@ _EOF_
 ```
 
 Cleanup :
+
 ```
 dropdb -p $SLAVEPORT $SLAVEDBNAME
 dropuser -p $SLAVEPORT $PGBENCHUSER
@@ -446,6 +449,7 @@ dropuser -p $SLAVEPORT $REPLICATIONUSER
 ```
 
 Create a user :
+
 ```
 psql -p $SLAVEPORT -c "CREATE ROLE $PGBENCHUSER WITH PASSWORD '$PGBENCHUSER' LOGIN;"
 psql -p $SLAVEPORT -c "CREATE ROLE $REPLICATIONUSER WITH PASSWORD '$REPLICATIONUSER' LOGIN SUPERUSER;"
@@ -459,12 +463,14 @@ chmod 600 ~/.pgpass
 ```
 
 Copy the globals :
+
 ```
 pg_dumpall -h $MASTERHOST -p $MASTERPORT -U $REPLICATIONUSER --globals-only |
    psql -p $SLAVEPORT
 ```
 
 Copy the structure of the database :
+
 ```
 pg_dump -h $MASTERHOST -p $MASTERPORT -d $MASTERDBNAME -U $REPLICATIONUSER --exclude-schema="_$CLUSTERNAME" -s |
    psql -p $SLAVEPORT
@@ -484,7 +490,7 @@ I also did compile postgresql so I had (need  to cehck what was necessary):
 sudo apt-get install build-essential libreadline-dev \
      zlib1g-dev flex bison libxml2-dev libxslt-dev \
      libssl-dev libxml2-utils xsltproc wget git
-``
+```
 
 Compile with perl tools :
 
@@ -513,6 +519,7 @@ Edit /usr/lib/systemd/system/slony1-22-95.service and fix SLONCLUSTERNAME and
 SLONCONNINFO.
 
 Then :
+
 ```
 systemctl daemon-reload
 systemctl start slony1-22-95
@@ -520,17 +527,20 @@ systemctl status slony1-22-95
 ```
 
 Create the subscribe.sh script and launch it.
+
 ```
 bash ./subscribe.sh 2>&1 | tee create.log
 ```
 
 Test with pgbench :
+
 ```
 pgbench -h $MASTERHOST -p $MASTERPORT -U pgbench -c 5 -T 300 pgbench
 ```
 
 NOTE : I had problems with SLONCONNINFO in the service file. The quotes should
 be after the first = sign.
+
 ```
 Environnement="SLONCONNINFO=host= port= dbname= user="
 ```
@@ -543,6 +553,7 @@ Edit /usr/lib/systemd/system/slony1-22-12.service and fix SLONCLUSTERNAME and
 SLONCONNINFO.
 
 Then :
+
 ```
 systemctl daemon-reload
 systemctl start slony1-22-12
