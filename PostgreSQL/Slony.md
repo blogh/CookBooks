@@ -20,7 +20,7 @@
 * Cluster : named set of PostgreSQL database instances
 * Node : A PostgreSQL database that will be participating in replication.
 * Replication Set : set of tables and sequences that are replicateed between
-  nodes in Sllony Cluster.
+  nodes in Slony Cluster.
 * Origin : Only place where the user application is permetted to modify data.
   Also called master provider (or event node in some commands).
 * Providers / Subscriber :  A node can be provider and subscriber in cascading
@@ -41,6 +41,7 @@
 
 ## Limitations
 
+* Need PK
 * No BLOBS
 * No DDL
 * No modification to USERs and ROLEs
