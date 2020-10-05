@@ -115,6 +115,19 @@ They can then be added with :
 ALTER TABLE <schema>.<table> ADD COLUMN <id_column> SERIAL PRIMARY KEY;
 ```
 
+## No bytea
+
+```
+SELECT n.nspname, c.relname, attname, attnum, typname 
+FROM pg_attribute a 
+     INNER JOIN pg_type t on a.atttypid = t.oid 
+     INNER JOIN pg_class c ON c.oid = a.attrelid 
+     INNER JOIN pg_namespace n ON  n.oid=c.relnamespace 
+WHERE typname = 'bytea'
+  AND n.nspname NOT LIKE ALL (ARRAY['pg_%','information_schema'])
+ORDER BY 1,2,4;
+```
+
 ## Create the list of set commands (for the diy method)
 
 Get the list tables :
