@@ -227,10 +227,10 @@ _EOF_
 
 ## List tables & indexes to compare number of lines
 
-List tables with estimated number of lines and sized :
+List tables with estimated number of lines and size of table :
 
 ```
-SELECT n.nspname, c.relname, reltuples, pg_table_size(c.oid)
+SELECT n.nspname, c.relname, reltuples, pg_table_size(c.oid), pg_size_pretty(pg_table_size(c.oid))
 FROM pg_class c
 JOIN pg_namespace n ON n.oid=c.relnamespace
 WHERE relkind='r'
@@ -238,10 +238,10 @@ WHERE relkind='r'
 ORDER BY n.nspname, c.relname;
 ```
 
-List indexes with estimated number of lines and sized :
+List indexes with estimated number of lines and size of table :
 
 ```
-SELECT n.nspname, c.relname, reltuples, pg_table_size(c.oid)
+SELECT n.nspname, c.relname, reltuples, pg_table_size(c.oid), pg_size_pretty(pg_table_size(c.oid))
 FROM pg_class c
 JOIN pg_namespace n ON n.oid=c.relnamespace
 WHERE relkind='i'
@@ -253,13 +253,14 @@ Liste tables with real number of lines and real size :
 
 ```
 SET client_min_messages TO 'LOG';
-DO LANGUAGE PLPGSQL
+DO LANGUAGE PLPGSQL $$
 DECLARE
   rec record;
   req text;
   nb  integer;
 BEGIN
-  FOR rec IN SELECT n.nspname, c.relname, reltuples, pg_table_size(c.oid) AS size
+  RAISE LOG '==> Schema | Table | relTuple | Count | Size | Size_pretty';
+  FOR rec IN SELECT n.nspname, c.relname, reltuples, pg_table_size(c.oid) AS size, pg_size_pretty(pg_table_size(c.oid)) AS size_pretty
             FROM pg_class c
             JOIN pg_namespace n ON n.oid=c.relnamespace
             WHERE relkind='r'
@@ -268,7 +269,7 @@ BEGIN
   LOOP
     req := 'SELECT count(*) FROM '||quote_ident(rec.nspname)||'.'||quote_ident(rec.relname);
     EXECUTE req INTO nb;
-    RAISE LOG '==> % % % % %', rec.nspname, rec.relname, rec.reltuples, nb, rec.size;
+    RAISE LOG '==> % | % | % | % | % | %', rec.nspname, rec.relname, rec.reltuples, nb, rec.size, rec.size_pretty;
   END LOOP;
 END
 $$;
@@ -280,7 +281,7 @@ $$;
 
 ### Server 1
 
-Install binaries
+Install PostgreSQL binaries
 
 ```
 yum install -y https://download.postgresql.org/pub/repos/yum/reporpms/EL-7-x86_64/pgdg-redhat-repo-latest.noarch.rpm
@@ -289,9 +290,11 @@ yum install -y postgresql95-server slony1-95.x86_64
 /usr/pgsql-9.5/bin/postgresql95-setup initdb
 export PGDATA=/var/lib/pgsql/9.5/data
 cp $PGDATA/postgresql.conf $PGDATA/postgresql.conf.old
+
 cat <<_EOF_ >>$PGDATA/postgresql.conf
 listen_addresses='*'
 _EOF_
+
 systemctl enable postgresql-9.5
 systemctl start postgresql-9.5
 ```
@@ -356,7 +359,11 @@ _EOF_
 chmod 600 ~/.pgpass
 
 pgbench -h $MASTERHOST -p $MASTERPORT -U $PGBENCHUSER -i -s 1 $MASTERDBNAME
+```
 
+Add PKs to `pgbench_history` :
+
+```
 psql -h $MASTERHOST -p $MASTERPORT -U $PGBENCHUSER -d $MASTERDBNAME <<_EOF_
 BEGIN;
 
@@ -377,26 +384,6 @@ or with a one liner :
 
 ```
 ALTER TABLE public.pgbench_history ADD COLUMN id SERIAL PRIMARY KEY;
-```
-
-**Alternative : Compilation**
-
-Download the perl stuff :
-
-```
-apt-get install libpg-perl libdbd-pg-perl
-```
-
-Compile  :
-
-```
-git clone git://git.postgresql.org/git/slony1-engine.git
-cd slony1-engine/
-git checkout REL_2_2_8
-autoconf
-./configure --with-pgconfigdir=/usr/lib/postgresql/9.1/bin --with-perltools
-make
-sudo make install
 ```
 
 ### Server 2
@@ -476,7 +463,7 @@ pg_dump -h $MASTERHOST -p $MASTERPORT -d $MASTERDBNAME -U $REPLICATIONUSER --exc
    psql -p $SLAVEPORT
 ```
 
-## Prerequ on Debian
+## Compile on Debian
 
 Install perl package :
 
@@ -515,7 +502,7 @@ generated with the SQL queries.
 bash ./create.sh 2>&1 | tee create.log
 ```
 
-Edit /usr/lib/systemd/system/slony1-22-95.service and fix SLONCLUSTERNAME and
+Edit `/usr/lib/systemd/system/slony1-22-95.service` and fix `SLONCLUSTERNAME` and
 SLONCONNINFO.
 
 Then :
@@ -526,7 +513,7 @@ systemctl start slony1-22-95
 systemctl status slony1-22-95
 ```
 
-Create the subscribe.sh script and launch it.
+Create the `subscribe.sh` script and launch it.
 
 ```
 bash ./subscribe.sh 2>&1 | tee create.log
@@ -538,7 +525,7 @@ Test with pgbench :
 pgbench -h $MASTERHOST -p $MASTERPORT -U pgbench -c 5 -T 300 pgbench
 ```
 
-NOTE : I had problems with SLONCONNINFO in the service file. The quotes should
+NOTE : I had problems with `SLONCONNINFO` in the service file. The quotes should
 be after the first = sign.
 
 ```
@@ -547,10 +534,10 @@ Environnement="SLONCONNINFO=host= port= dbname= user="
 
 ### Server 2
 
-Once the subscribe.sh script is launched on server 1.
+Once the `subscribe.sh` script is launched on server 1.
 
-Edit /usr/lib/systemd/system/slony1-22-12.service and fix SLONCLUSTERNAME and
-SLONCONNINFO.
+Edit `/usr/lib/systemd/system/slony1-22-12.service` and fix `SLONCLUSTERNAME` and
+`SLONCONNINFO`.
 
 Then :
 
@@ -608,7 +595,7 @@ Create the cluster :
 slonik_init_cluster --config /etc/slony1-95/slony_tools_bench.conf | slonik
 ```
 
-Configure the slon daemon for a service:
+Configure the slon daemon for a **service**:
 
 ```
 mkdir -p /etc/slony1-95/$CLUSTERNAME
@@ -620,13 +607,13 @@ _EOF_
 
 Note : you might have to modify the init.d script
 
-* the init.d script can be taken from `slony1-engine/tools/start_slon.sh`
-* SLON_BIN_PATH, SLON_CONF and SLON_LOG have to be updated in the service
+* the `/etc/init.d` script can be taken from `slony1-engine/tools/start_slon.sh`
+* `SLON_BIN_PATH`, `SLON_CONF` and `SLON_LOG` have to be updated in the service
 script
 * it might be necessary to add : `pid_file='<path to pid>'`
 * You migth have to create the links in `/etc/rc3.d`.
 
-Configure the slon daemon for systemctl
+Configure the slon daemon for **systemctl**
 
 ```
 systemctl daemon-reload
@@ -634,15 +621,15 @@ systemctl start slony1-22-95
 systemctl status slony1-22-95
 ```
 
-Note : You might have to modify : /usr/lib/systemd/system/slony1-22-95.service
+Note : You might have to modify : `/usr/lib/systemd/system/slony1-22-95.service`
 
-* The SLONCONNINFO was broken for me I had to move the quotes : 
+* The `SLONCONNINFO` was broken for me I had to move the quotes : 
 
   ```
   Environment="SLONCONNINFO=host=localhost port=5432 user=slony dbname=pgbench"`   
   ```
 
-* The SLONCLUSTERNAME might have to be changed for slony to find the schema in
+* The `SLONCLUSTERNAME` might have to be changed for slony to find the schema in
   the database :
 
   ```
@@ -661,8 +648,8 @@ Subscribe node 2 to the set :
 slonik_subscribe_set --config /etc/slony1-95/slony_tools_bench.conf set_all node2 | slonik
 ```
 
-Copy the file /etc/slony1-95/slony_tools_bench.conf on the other node
-/etc/slony1-12/slony_tools_bench.conf.
+Copy the file `/etc/slony1-95/slony_tools_bench.conf` on the other node
+`/etc/slony1-12/slony_tools_bench.conf`.
 
 Checks :
 
@@ -684,7 +671,7 @@ If you use systemd, traces will be in `/var/log/syslog` or `/var/log/messages`.
 
 Configure the slone daemon on the second node (more details above) :
 
-* for a service:
+* for a **service**:
 
   ```
   mkdir -p /etc/slony1-12/$CLUSTERNAME
@@ -694,7 +681,7 @@ Configure the slone daemon on the second node (more details above) :
   _EOF_
   ```
 
-* for systemctl : You might have to modify : /usr/lib/systemd/system/slony1-22-12.service
+* for **systemctl** : You might have to modify : `/usr/lib/systemd/system/slony1-22-12.service`
 
   ```
   systemctl daemon-reload
@@ -712,8 +699,8 @@ Configure the slone daemon on the second node (more details above) :
 
 Use the commands :
 
-* slonik_create_set
-* slonik_merge_sets
+* `slonik_create_set`
+* `slonik_merge_sets`
 
 Slonik script (pay attention to set id and table ids when adding tables to a
 set) :
@@ -822,8 +809,8 @@ Two ways depending on what you want :
 
 Commands :
 
-* slonik_drop_node
-* slonik_uninstall_nodes
+* `slonik_drop_node`
+* `slonik_uninstall_nodes`
 
 Perl tools to drop a node :
 
