@@ -284,7 +284,7 @@ With this query : (see [pg_trigger's doc](https://www.postgresql.org/docs/curren
 ```
 SELECT n.nspname, c.relname,
        (SELECT tgenabled FROM pg_trigger WHERE c.oid = tgrelid AND tgname LIKE '%_denyaccess') AS denyaccess,
-       (SELECT tgenabled FROM pg_trigger WHERE c.oid = tgrelid AND tgname LIKE '%_truncatedeny') AS truncatedenyaccess,
+       (SELECT tgenabled FROM pg_trigger WHERE c.oid = tgrelid AND tgname LIKE '%_truncatedeny') AS truncatedeny,
        (SELECT tgenabled FROM pg_trigger WHERE c.oid = tgrelid AND tgname LIKE '%_logtrigger') AS logtrigger,
        (SELECT tgenabled FROM pg_trigger WHERE c.oid = tgrelid AND tgname LIKE '%_truncatetrigger') AS truncatetrigger
   FROM pg_class c
