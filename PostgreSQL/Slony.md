@@ -23,7 +23,7 @@
   nodes in Sllony Cluster.
 * Origin : Only place where the user application is permetted to modify data.
   Also called master provider (or event node in some commands).
-* Providers / Subscriber :  A can be provider and subscriber in cascading
+* Providers / Subscriber :  A node can be provider and subscriber in cascading
   replication.  The origin cannot be a subscriber.
 
 * Slon daemon : process that manages replication for the node. It is designed
@@ -61,7 +61,7 @@ Event id = (Node id, sequence number)
 SYNC events are used to transfert application data from one node to the next.
 
 Modifications are recorded in the `sl_log_1` and `sl_log_2` tables. The
-`locallistener` thread periodically creates a SYNC event that encompasses the
+`local_listener` thread periodically creates a SYNC event that encompasses the
 events not yet commited.
 
 The `remoteWorker` thread of for a slon processes the SYNC and queries all the
