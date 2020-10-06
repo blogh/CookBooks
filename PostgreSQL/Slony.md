@@ -42,11 +42,14 @@
 ## Limitations
 
 * Need PK
-* No BLOBS
+* No BLOBS (large objects)
 * No DDL
 * No modification to USERs and ROLEs
 
 Scripts can be used with "slonik execute script" to propagate DDL changes.
+
+For migration to PostgreSQL 12+, tables with oids are forbidden (the support
+was dropped).
 
 ## Events
 
@@ -127,17 +130,10 @@ They can then be added with :
 ALTER TABLE <schema>.<table> ADD COLUMN <id_column> SERIAL PRIMARY KEY;
 ```
 
-## No bytea
+## No large objects
 
 ```
-SELECT n.nspname, c.relname, attname, attnum, typname 
-FROM pg_attribute a 
-     INNER JOIN pg_type t on a.atttypid = t.oid 
-     INNER JOIN pg_class c ON c.oid = a.attrelid 
-     INNER JOIN pg_namespace n ON  n.oid=c.relnamespace 
-WHERE typname = 'bytea'
-  AND n.nspname NOT LIKE ALL (ARRAY['pg_%','information_schema'])
-ORDER BY 1,2,4;
+SELECT count(*) FROM pg_largeobject;
 ```
 
 ## Create the list of set commands (for the diy method)
