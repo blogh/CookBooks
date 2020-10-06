@@ -69,6 +69,14 @@ The `remoteWorker` thread of for a slon processes the SYNC and queries all the
 rows from the log tables that are encompassed by the SYNC. The data is then
 applied on the subscriber.
 
+The provider checks for updates every `sync_interval` (default 100 ms).
+A SYNC event is issued anyway every `sync_interval_timeout` (default 1000 ms).
+
+SYNC event can be applied in groups, if the lag is too much. Slony will try
+group them so that their application take no more than `desired_sync_time`
+(6000 ms). In addition to this, there is a maximum to the number of sync
+applied together : `sync_group_maxsize` (20).
+
 ### Confirmation
 
 When an event is processed by a remote node a line is added to `sl_confirm`.
@@ -82,6 +90,10 @@ the most recently confirmed event for each origin/reveiver pair. (sl_event ?)
 Then old SYNC events are deleted in `sl_confirm`.
 
 Then the data from `sl_log_1` and `sl_log_2` tables.
+
+The cleanup is done every `cleanup_interval` (default 10 minutes). A vacuum is
+launched every `vac_frequency` cleanups (default 3).
+
 
 ### Slonik and Event confirmation
 
