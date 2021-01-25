@@ -1,4 +1,4 @@
-# General
+# Slony (super wip notes)
 
 ## Why Slony
 
@@ -50,6 +50,20 @@ Scripts can be used with "slonik execute script" to propagate DDL changes.
 
 For migration to PostgreSQL 12+, tables with oids are forbidden (the support
 was dropped).
+
+## Initial load
+
+The data is copied from the provider to the subscriber.
+
+The traces are on the subscriber.
+
+You can grep for "copy_set ... done in ..." in the traces :
+
+Exemple :
+```
+[root@pg12 log]# grep "copy_set.*done in" /var/log/messages-20201004
+Oct  2 15:56:22 pg12 slon[4908]: 2020-10-02 15:56:22 UTC INFO   copy_set 1 done in 0.521 seconds
+```
 
 ## Events
 
@@ -849,6 +863,7 @@ Two ways depending on what you want :
 * drop node : removes the slony schema and tell the other nodes that the node
   is gone
 * uninstall node : removes the slony schema from the node
+* stop slony's processes and drop slony's schema
 
 Commands :
 

@@ -1,12 +1,16 @@
-# PageHeadearData - `pageheader(txt, int)`
+# PageInspect
 
-## Source 
+## Header Pages
+
+### PageHeadearData - `pageheader(txt, int)`
+
+#### Source
 
 `src/include/storage/bufpage.h`
 
-## Data
+#### Data
 ```
-pd_lsn;          
+pd_lsn;
 ```
 * LSN: next byte after last byte of xlog record for last change to this page
 * The LSN is used by the buffer manager to enforce the basic rule of WAL: "thou
@@ -14,12 +18,12 @@ pd_lsn;
   xlog has been flushed at least as far as the page's LSN.
 
 ```
-pd_checksum; 
+pd_checksum;
 ```
 * The checksum is dependant on the block number - page_checksum(bytea, int)
 
 ```
-pd_flags;               
+pd_flags;
 ```
 * `PD_HAS_FREE_LINES       0x0001  /* are there any unused line pointers? */`
 * `PD_PAGE_FULL            0x0002  /* not enough free space for new tuple? */`
@@ -27,8 +31,8 @@ pd_flags;
 * `PD_VALID_FLAG_BITS      0x0007  /* OR of all valid pd_flags bits */`
 
 ```
-pd_lower;         /* offset to start of free space */        
-pd_upper;         /* offset to end of free space */          
+pd_lower;         /* offset to start of free space */
+pd_upper;         /* offset to end of free space */
 ```
 * The space available for tuple is located between pd_lower & pd_upper
 
@@ -38,12 +42,12 @@ pd_special;
 * offset to start of special space
 
 ```
-pd_pagesize_version;                                    
+pd_pagesize_version;
 ```
 * 4 is the version for 8.3
 
 ```
-pd_prune_xid; 
+pd_prune_xid;
 ```
 * oldest prunable XID, or zero if none
 * it helps determine whether pruning will be useful.  It is currently unused
@@ -53,13 +57,13 @@ pd_prune_xid;
 pd_linp[FLEXIBLE_ARRAY_MEMBER]; /* line pointer array */
 ```
 
-# Heap page items `heap_page_items(bytea)` - `heap_page_item_attrs(bytea, regclass)`
+## Heap page items `heap_page_items(bytea)` - `heap_page_item_attrs(bytea, regclass)`
 
-## Source 
+### Source
 `src/include/storage/itemid.h`
 `src/include/access/htup_details.h`
 
-## Data 
+### Data
 
 ```
 lp_off (ItemData)
@@ -94,7 +98,7 @@ t_xmax (HeapTupleHeaderData -> HeapTupleFields)
 ```
 (???) t_cid (HeapTupleHeaderData -> HeapTupleFields)
 ```
-* inserting or deleting command ID, or both 
+* inserting or deleting command ID, or both
 
 ```
 (???) t_xvac (HeapTupleHeaderData -> HeapTupleFields)
@@ -121,13 +125,13 @@ t_infomask2 (HeapTupleHeaderData)
 ```
 t_infomask (HeapTupleHeaderData)
 ```
-* various flag bits, see below 
-  * `HEAP_HASNULL                0x0001  /* has null attribute(s) */`        
+* various flag bits, see below
+  * `HEAP_HASNULL                0x0001  /* has null attribute(s) */`
   * `HEAP_HASVARWIDTH            0x0002  /* has variable-width attribute(s) */`
   * `HEAP_HASEXTERNAL            0x0004  /* has external stored attribute(s) */`
-  * `HEAP_HASOID_OLD             0x0008  /* has an object-id field */`       
-  * `HEAP_XMAX_KEYSHR_LOCK       0x0010  /* xmax is a key-shared locker */`          
-  * `HEAP_COMBOCID               0x0020  /* t_cid is a combo cid */`     
+  * `HEAP_HASOID_OLD             0x0008  /* has an object-id field */`
+  * `HEAP_XMAX_KEYSHR_LOCK       0x0010  /* xmax is a key-shared locker */`
+  * `HEAP_COMBOCID               0x0020  /* t_cid is a combo cid */`
   * `HEAP_XMAX_EXCL_LOCK         0x0040  /* xmax is exclusive locker */`
   * `HEAP_XMAX_LOCK_ONLY         0x0080  /* xmax, if valid, is only a locker */`
   * `HEAP_XMIN_COMMITTED         0x0100  /* t_xmin committed */`
@@ -159,7 +163,7 @@ t_bits[FLEXIBLE_ARRAY_MEMBER]; (HeapTupleHeaderData)
 ```
 * bitmap of NULLs
 
-## Queries for `t_infomask` & `t_infomask2`
+### Queries for `t_infomask` & `t_infomask2`
 
 Useless since pg13 where `heap_tuple_infomask_flags(t_infomask, t_infomask2)` was
 introduced.
@@ -206,4 +210,47 @@ FROM (VALUES
 WHERE (:t_infomask2::bit(16) & mask)::int <> 0
 ;
 ```
+
+## Index
+
+### Metapage
+
+block no 0 of index
+
+### Data (pre 13)
+
+itemoffset
+
+ctid
+
+itemlen
+
+nulls
+
+vars
+
+data
+
+
+### Data (13+)
+
+itemoffset
+
+ctid
+
+itemlen
+
+nulls
+
+vars
+
+data
+
+dead
+
+htid
+* heap tid
+
+tids
+* tids of duplicates
 

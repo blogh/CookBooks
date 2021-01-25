@@ -12,10 +12,10 @@ table can be done according to this :
 
 ```
 ALTER TABLE <nom_table> SET (
-   vacuum_scale_factor = <valeur>,
-   vacuum_threshold = <valeur>,
-   analyze_scale_factor = <valeur>,
-   analyze_threshold = <valeur>
+   autovacuum_vacuum_scale_factor = <valeur>,
+   autovacuum_vacuum_threshold = <valeur>,
+   autovacuum_analyze_scale_factor = <valeur>,
+   autovacuum_analyze_threshold = <valeur>
 );
 ```
 
