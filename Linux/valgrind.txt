@@ -1,0 +1,23 @@
+# valgrind
+
+* https://www.valgrind.org/docs/manual/ms-manual.html
+
+Install :
+
+```
+dnf install valgrind
+```
+
+Generate :
+
+```
+valgrind --tool=massif \
+         --trace-children=yes \
+	 /usr/pgsql-12/bin/postgres "-D" "/home/benoit/var/lib/postgres/pgsql-12"
+```
+
+Visualize result :
+
+```
+ms_print massif.out.<PID>
+```
