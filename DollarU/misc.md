@@ -20,12 +20,12 @@ uxlst ctl ses=$sesl upr=$uprl mu=$mugr status=a,o,e full
 
 List history
 ```
-uxlst ctl upr=IUOGA010FT nupr=2094719 hst 
+uxlst ctl upr=$upr nupr=2094719 hst 
 ```
 
 list in launch wait
 ```
-uxlst fla upr=HUOE39* full 
+uxlst fla upr=$upr full 
 ```
 	
 Count aborted uprocs (first 5 lines are cosmetic)
@@ -37,37 +37,37 @@ uxlst ctl status=a |tail -n+5 | wc -l
 
 Launch new session
 ```
-uxadd fla ses=OSOPH001AT upr=OUOPH001AD mu=rora pdate=25/09/2014 user=ora_dmlr
+uxadd fla ses=$ses upr=$upr mu=rora pdate=25/09/2014 user=ora_dmlr
 ```
 	
 # delete
 
 delete session
 ```
-uxdlt ses ses=osooi001*
-uxdlt ses ses=isooi001*
+uxdlt ses ses=$ses
+uxdlt ses ses=$ses
 ```
 
 # show
 
 show session
 ```
-uxshw ses exp ses=OSOUS002*
+uxshw ses exp ses=$ses
 ```
 
 show link between stanza
 ```
-uxshw ses exp ses=TSPYC001HT lnk
+uxshw ses exp ses=$ses lnk
 ```
 
 show uproc
 ```
-uxshw upr exp upr=OUOUS002*
+uxshw upr exp upr=$upr
 ```
 
 show task
 ```
-uxshw tsk ses=OSOUS002* upr=* mu=rORA
+uxshw tsk ses=$ses upr=* mu=$muname
 ```
 
 show rule
@@ -79,5 +79,5 @@ uxshw rul rul=LUNJEU
 
 Update an uproc
 ```
-uxupd tsk exp ses=TSPYT001HD upr=TUPYT001EP mu=rpo nomodel TECHINF DISABLE
+uxupd tsk exp ses=$ses upr=$upr mu=$muname nomodel TECHINF DISABLE
 ```
