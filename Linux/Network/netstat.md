@@ -1,5 +1,8 @@
 # Netstat
 
+List numerical address (-n) of rogram (-p) listening (-l) on tcp (-t) [add -u
+for udp] :
+
 ```
 netstat -plnt
 ```
