@@ -1,10 +1,12 @@
 # Add in .bashrc
 
 function pggrep {
+    # usage       : pggrep [-t SRC|DOC] [-m LOOSE|STRICT] [-f] SEACH_STRING
+    # description : Search stuff in the postgresql source code
+    local SOURCE_PATH="/home/benoit/git/world/postgres"
     local TARGET="SRC"
     local MODE="LOOSE"
     local FILES_WITH_MATCHES="0"
-    local SOURCE_PATH="/home/benoit/git/world/postgres"
     local TARGET_PARM=""
     local MODE_PARM=""
     local FWM_PARM=""
