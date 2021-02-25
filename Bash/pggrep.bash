@@ -18,7 +18,7 @@ function pggrep {
          t) TARGET="${OPTARG}" ;;
 	 m) MODE="${OPTARG}" ;;
 	 f) FILES_WITH_MATCHES="1" ;;
-	 *) echo "pggrep [-t TARGET] [-m MODE] [-l]"; return ;;
+	 *) echo "pggrep [-t TARGET] [-m MODE] [-f]"; return ;;
     esac                                                                        
     done
     shift $((OPTIND - 1))
