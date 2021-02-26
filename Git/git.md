@@ -4,61 +4,51 @@ Skipping a CI Build for non-code changes
 ```
 git push -o ci.skip
 ```
-# checkout
+## Checkout
 
 ```
 git checkout -n <new name> <name of remote>/<name of branch>
 git checkout -t <name of remote>/<name of branch>
 ```
 
-# Rebase
+## Rebase
+
+https://git-rebase.io/
+
+Create a branch :
 
 ```
 git checkout master
 git pull 
 git checkout <my branch>
-git rebase master
 ```
 
-# Find the branch of a commit from it's text 
-
-From postgres's repository:
-```
-MESSAGE="Always call ExecShutdownNode() if appropriate."
-for c in $(git log --all --grep "$MESSAGE" | grep "^commit " | sed "s/^commit \(.*\)$/\1/"); do
-    git name-rev $c
-done
-```
-gives 
-```
-bc049d0d460aead528ace909a3477bc701ab2e9a tags/REL_11_7~117
-24897e1a1af27dc759fb41afba2a663ff9af4ef6 tags/REL_12_2~147
-76cbfcdf3a0dff3f029ca079701418b861ce86c8 master~515
-```
-
-# Display branches :
-
-With a graph
+Then :
 
 ```
-git log --all --graph
-git log --graph --pretty=oneline --abbrev-commit
+git rebase [-i] master
 ```
 
-# Cancel last commit
+or, to attach to it :
 
 ```
-git reset HEAD~
+git rebase <branch>
+git branch --set-upstream-to=<branch>
+git push --force origin <my branch>
 ```
 
-# rebase branch on another one and "attach to it"
 
-git checkout <branche>
-git rebase origin/ws13
-git branch --set-upstream-to=origin/ws13
-git push --force origin <branch>
+It can be used to reorder patches inside a branch :
 
-# create a patch
+```
+git rebase --interactive '1df13b0b8dd798156e7b357205d22e2abde4f635^'
+
+# Then for all commits
+   git commit --amend
+   git rebase --continue
+```
+
+## Create a Patch
 
 Do the modifications :
 
@@ -76,48 +66,53 @@ Create a patch by comparing to master :
 git format-patch master -o ~/tmp/patches
 ```
 
-# Rebase powa
+## Move commits from one branch to another
 
-https://git-rebase.io/
+Exemple from master => NewBranch
 
+```
+git branch $NewBranch
+git checkout $NewBranch
+git log                      # Check what we have
+git checkout master
 
-(pgactivity) [benoit@benoit-dalibo pg_activity]$ git rebase -i master
-[detached HEAD 91c7cdd] Fix dbname defaults
- Date: Thu Nov 26 18:56:26 2020 +0100
- 1 file changed, 2 insertions(+), 2 deletions(-)
-Successfully rebased and updated refs/heads/connection_string.
-(pgactivity) [benoit@benoit-dalibo pg_activity]$ git branch dbname HEAD^
+git reset --hard COMMITNUMBER	# Reset to commit number
+git reset --hard HEAD~1         # Reset to before last commit
+```
 
+## Find the branch of a commit from it's text 
 
-(pgactivity) [benoit@benoit-dalibo pg_activity]$ git push --force -u blogh connection_string -n
-Username for 'https://github.com': blogh
-Password for 'https://blogh@github.com':
-To https://github.com/blogh/pg_activity.git
- + 7efdffa...5046c87 connection_string -> connection_string (forced update)
-Would set upstream of 'connection_string' to 'connection_string' of 'blogh'
-(pgactivity) [benoit@benoit-dalibo pg_activity]$ git push --force -u blogh connection_string
-Username for 'https://github.com': blogh
-Password for 'https://blogh@github.com':
-Enumerating objects: 11, done.
-Counting objects: 100% (11/11), done.
-Delta compression using up to 8 threads
-Compressing objects: 100% (6/6), done.
-Writing objects: 100% (6/6), 1.26 KiB | 1.26 MiB/s, done.
-Total 6 (delta 5), reused 0 (delta 0)
-remote: Resolving deltas: 100% (5/5), completed with 5 local objects.
-To https://github.com/blogh/pg_activity.git
- + 7efdffa...5046c87 connection_string -> connection_string (forced update)
+From postgres's repository:
 
-Branch 'connection_string' set up to track remote branch 'connection_string' from 'blogh'.
+```
+MESSAGE="Always call ExecShutdownNode() if appropriate."
+for c in $(git log --all --grep "$MESSAGE" | grep "^commit " | sed "s/^commit \(.*\)$/\1/"); do
+    git name-rev $c
+done
+```
 
-# Split modification in a file into separates commits
+gives 
+```
+bc049d0d460aead528ace909a3477bc701ab2e9a tags/REL_11_7~117
+24897e1a1af27dc759fb41afba2a663ff9af4ef6 tags/REL_12_2~147
+76cbfcdf3a0dff3f029ca079701418b861ce86c8 master~515
+```
+
+## Display branches :
+
+With a graph
+
+```
+git log --all --graph
+git log --graph --pretty=oneline --abbrev-commit
+```
+
+## Cancel last commit
+
+```
+git reset HEAD~
+```
+
+## Split modification in a file into separates commits
 
 git add --patch
-
-# modify a list of commits
-
-git rebase --interactive '1df13b0b8dd798156e7b357205d22e2abde4f635^'
-
-for all commits
-	git commit --amend
-	git rebase --continue
