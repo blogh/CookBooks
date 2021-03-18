@@ -98,6 +98,12 @@ bc049d0d460aead528ace909a3477bc701ab2e9a tags/REL_11_7~117
 76cbfcdf3a0dff3f029ca079701418b861ce86c8 master~515
 ```
 
+## Look for text in logs
+
+```
+git log --all --grep="MESSAGE"
+```
+
 ## Display branches :
 
 With a graph
