@@ -4,6 +4,7 @@ Skipping a CI Build for non-code changes
 ```
 git push -o ci.skip
 ```
+
 ## Checkout
 
 ```
@@ -130,4 +131,12 @@ git reset --hard origin/abranch
 
 ## Split modification in a file into separates commits
 
+```
 git add --patch
+```
+
+## Display files modified by a commit
+
+```
+git diff-tree -r 9120b48c344a9135286f929c374aef7df57acb03
+```
