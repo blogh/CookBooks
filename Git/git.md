@@ -113,10 +113,19 @@ git log --all --graph
 git log --graph --pretty=oneline --abbrev-commit
 ```
 
-## Cancel last commit
+## Cancel commit
+
+Cancel the last commit :
 
 ```
 git reset HEAD~
+```
+
+Reset branch to origin :
+
+```
+git checkout abranch
+git reset --hard origin/abranch
 ```
 
 ## Split modification in a file into separates commits
