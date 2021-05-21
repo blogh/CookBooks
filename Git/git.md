@@ -1,18 +1,13 @@
 # Git stuff
-        
-Skipping a CI Build for non-code changes
-```
-git push -o ci.skip
-```
-
-## Checkout
+## Basic stuff
+### Checkout
 
 ```
 git checkout -n <new name> <name of remote>/<name of branch>
 git checkout -t <name of remote>/<name of branch>
 ```
-
-## Rebase
+## Mobing stuff around 
+### Rebase
 
 https://git-rebase.io/
 
@@ -49,25 +44,7 @@ git rebase --interactive '1df13b0b8dd798156e7b357205d22e2abde4f635^'
    git rebase --continue
 ```
 
-## Create a Patch
-
-Do the modifications :
-
-```
-git branch MYBRANCH
-git checkout MYBRANCH
-modify
-git diff --check              ## looks for whitespaces
-git commit -m "MYCOMMIT"
-```
-
-Create a patch by comparing to master :
-
-```
-git format-patch master -o ~/tmp/patches
-```
-
-## Move commits from one branch to another
+### Move commits from one branch to another
 
 Exemple from master => NewBranch
 
@@ -81,7 +58,32 @@ git reset --hard COMMITNUMBER	# Reset to commit number
 git reset --hard HEAD~1         # Reset to before last commit
 ```
 
-## Find the branch of a commit from it's text 
+### Cancel commit
+
+Cancel the last commit :
+
+```
+git reset HEAD~
+```
+
+Reset branch to origin :
+
+```
+git checkout abranch
+git reset --hard origin/abranch
+```
+
+### Removing a file from a commit
+
+Here we remove from the last one :
+
+```
+git reset --soft HEAD~1   -- cancel last commit
+git reset HEAD <file>     -- remove the file from the cache
+```
+
+## Visualisation
+### Find the branch of a commit from it's text 
 
 From postgres's repository:
 
@@ -99,13 +101,13 @@ bc049d0d460aead528ace909a3477bc701ab2e9a tags/REL_11_7~117
 76cbfcdf3a0dff3f029ca079701418b861ce86c8 master~515
 ```
 
-## Look for text in logs
+### Look for text in logs
 
 ```
 git log --all --grep="MESSAGE"
 ```
 
-## Display branches :
+### Display branches :
 
 With a graph
 
@@ -114,29 +116,41 @@ git log --all --graph
 git log --graph --pretty=oneline --abbrev-commit
 ```
 
-## Cancel commit
-
-Cancel the last commit :
+### Display files modified by a commit
 
 ```
-git reset HEAD~
+git diff-tree -r 9120b48c344a9135286f929c374aef7df57acb03
 ```
 
-Reset branch to origin :
+## Misc
+### Create a Patch
+
+Do the modifications :
 
 ```
-git checkout abranch
-git reset --hard origin/abranch
+git branch MYBRANCH
+git checkout MYBRANCH
+modify
+git diff --check              ## looks for whitespaces
+git commit -m "MYCOMMIT"
 ```
 
-## Split modification in a file into separates commits
+Create a patch by comparing to master :
+
+```
+git format-patch master -o ~/tmp/patches
+```
+
+### Split modification in a file into separates commits
 
 ```
 git add --patch
 ```
 
-## Display files modified by a commit
+### Skip CI
+        
+Skipping a CI Build for non-code changes
+```
+git push -o ci.skip
+```
 
-```
-git diff-tree -r 9120b48c344a9135286f929c374aef7df57acb03
-```
