@@ -10,7 +10,6 @@
 `ddp / ddkP`       : switch lines forward / backward
 `dawbP`            : switch words with previous ones
 
-
 # Find magic
 
 `/\<\d\,\d\>`      : find numbers
@@ -25,9 +24,12 @@
 `gUU`              : change the current line to uppercase (same as VU).
 `gUiw`             : change current word to uppercase.
 `guu`              : change the current line to lowercase (same as Vu).
-`u / U`            : lower / upper case current letter
+`v then u / U`: lower / upper case current selection
 
 # misc
+
+`u / ctrl r`           : Undo / redo
+
 `set nowrap`         : disable line wrap
 `set number`         :  " Show line numbers (remove with set nu! / set nonu)                                       
 `set relativenumber` :  " Show relative line numbers (remove with set nornu
@@ -69,8 +71,8 @@
 Ctrl-w h j k l   : move to the window in the selected direction
 
 Ctrl-w H J K L   : switch from vertical to horizontal split
-Ctrl-wt Ctrl-K   : change from vertical split to horizontal
-Ctrl-wt Ctrl-H   : change from horizontal split to vertical
+Ctrl-w Ctrl-K    : change from vertical split to horizontal
+Ctrl-w Ctrl-H    : change from horizontal split to vertical
 
 Ctrl-w =         : resize to equal size
 Ctrl-w _         : decrease size
