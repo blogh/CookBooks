@@ -237,7 +237,7 @@ vm.overcommit_kbytes = 80% of memory
 Huge pages are not part of CommitLimit, therefore to compute CommitLimit :
 
 ```
-CommitLimit = swap_size + ( RAM - HP_Total_Size ) * overcommit_ratio / 100)
+CommitLimit = swap_size + (( RAM - HP_Total_Size ) * overcommit_ratio / 100)
 
 HP_Total_Size = (vm.nr_hugepages + vm.nr_overcommit_hugepages) * Hugepagesize
 Hugepagesize = 2Mb
