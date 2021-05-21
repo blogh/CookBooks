@@ -16,6 +16,11 @@
 tcpdump -i eth0 -s0 -nl -w- dst port postgres | strings -n8
 ```
 
+```
+timeout 600 tcpdump -n -i eth0 -w capture.pcap -s 0 -C 200 'tcp and host 192.168.100.99 and port 5432 and (((ip[2:2] - ((ip[0]&0xf)<<2)) - ((tcp[12]&0xf0)>>2)) != 0)'
+```
+
+
 ## Links
 
 * https://danielmiessler.com/study/tcpdump/
