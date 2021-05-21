@@ -211,6 +211,12 @@ WHERE (:t_infomask2::bit(16) & mask)::int <> 0
 ;
 ```
 
+### Classic query
+
+```
+SELECT * FROM heap_page_items(get_raw_page('t', 0));
+```
+
 ## Index
 
 ### Metapage
