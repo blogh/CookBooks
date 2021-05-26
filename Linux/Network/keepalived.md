@@ -824,15 +824,15 @@ fi
 
 MEMBER_NAME="$1"
 
-if ! command -v patronictl &>/dev/null ; then
+if ! command -v /usr/local/bin/patronictl &>/dev/null ; then
 	exit 2
 fi
 
-if ! command -v jq &>/dev/null ; then
+if ! command -v /bin/jq &>/dev/null ; then
 	exit 2
 fi
 
-if [[ $(patronictl -c /etc/patroni/demo.yaml list -f json | jq ".[] | select(.Member==\"${MEMBER_NAME}\") | .Role") = "\"Leader\"" ]]; then
+if [[ $(/usr/local/bin/patronictl -c /etc/patroni/demo.yaml list -f json | jq ".[] | select(.Member==\"${MEMBER_NAME}\") | .Role") = "\"Leader\"" ]]; then
 	exit 0
 fi
 
