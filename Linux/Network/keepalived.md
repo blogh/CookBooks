@@ -789,7 +789,7 @@ global_defs {
 }
 
 vrrp_script keepalived_check_patroni {
-    script "/usr/local/bin/keepalived_check_patroni.sh"
+    script "/usr/local/bin/keepalived_check_patroni.sh p1"
     interval 1		# interval between checks
     timeout 5		# how long to wait for the script return
     rise 1              # How many time the script must return ok, for the
@@ -818,7 +818,11 @@ The `vrrp_script` (needs `jq` installed):
 ```
 #!/bin/bash
 
-MEMBER_NAME="p1"
+if [[ "$#" -ne  1 ]] ; then
+        exit 2
+fi
+
+MEMBER_NAME="$1"
 
 if ! command -v patronictl &>/dev/null ; then
 	exit 2
