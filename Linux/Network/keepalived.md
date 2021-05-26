@@ -783,6 +783,11 @@ VRRP instance changes it's state to `FAULT`.
 Conf on the both servers:
 
 ```
+global_defs {
+    enable_script_security
+    script_user root
+}
+
 vrrp_script keepalived_check_patroni {
     script "/usr/local/bin/keepalived_check_patroni.sh"
     interval 1		# interval between checks
@@ -823,8 +828,8 @@ if ! command -v jq &>/dev/null ; then
 	exit 2
 fi
 
-if [[ $(patronictl -c /etc/patroni/demo.yaml list -f json | jq ".[] | select(.Member==\"${MEMBER_NAME}\") | .Role") != "\"Leader\"" ]]; then
-	exit 1
+if [[ $(patronictl -c /etc/patroni/demo.yaml list -f json | jq ".[] | select(.Member==\"${MEMBER_NAME}\") | .Role") = "\"Leader\"" ]]; then
+	exit 0
 fi
 
 exit 1
