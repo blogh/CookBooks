@@ -816,7 +816,7 @@ vrrp_instance VI_1 {
 The `vrrp_script` (needs `jq` installed):
 
 ```
-!/bin/bash
+#!/bin/bash
 
 MEMBER_NAME="p1"
 
