@@ -149,6 +149,19 @@ How to do it :
    done
    ```
 
+   On centos :
+
+   Rebuild the /boot/grub2/grub.cfg file by running the grub2-mkconfig -o
+   command as follows:
+
+   * Please ensure to take a backup of the existing /boot/grub2/grub.cfg before
+     rebuilding.
+   * On BIOS-based machines: ~]# grub2-mkconfig -o /boot/grub2/grub.cfg
+   * On UEFI-based machines: ~]# grub2-mkconfig -o /boot/efi/EFI/redhat/grub.cfg
+
+   => The easiest way is to find out is to check to see if /sys/firmware/efi
+   exists. It does not appear if you booted using traditional BIOS.
+
 ## Pg & memory
 
 The parameter `vm.overcommit_memory` controls the overcommit policy : 
