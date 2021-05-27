@@ -180,7 +180,7 @@ There are many *algorithm possibe for load balancing* (lv_algo // lvs_sched):
 
 ### From the repo
 
-*Warning* : 1.5.3 is shipped with Centos 7. It has some bugs which prevent it
+*Warning* : 1.3.5 is shipped with Centos 7. It has some bugs which prevent it
 from working correctly with track_script for example.
 (https://access.redhat.com/errata/RHBA-2018:0972)
 
