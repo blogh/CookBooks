@@ -181,7 +181,7 @@ There are many *algorithm possibe for load balancing* (lv_algo // lvs_sched):
 ### From the repo
 
 *Warning* : 1.3.5 is shipped with Centos 7. It has some bugs which prevent it
-from working correctly with track_script for example.
+from working correctly with track_script defaut user.
 (https://access.redhat.com/errata/RHBA-2018:0972)
 
 ```
@@ -785,7 +785,7 @@ Conf on the both servers:
 ```
 global_defs {
     enable_script_security
-    script_user root
+    script_user root          # helps with the 1.3.5 bug
 }
 
 vrrp_script keepalived_check_patroni {
@@ -813,30 +813,18 @@ vrrp_instance VI_1 {
 }
 ```
 
-The `vrrp_script` (needs `jq` installed):
+The `vrrp_script` (wget will return `22` if it's not the primary, zero
+otherwise. 
 
 ```
 #!/bin/bash
 
-if [[ "$#" -ne  1 ]] ; then
-        exit 2
-fi
-
-MEMBER_NAME="$1"
-
-if ! command -v /usr/local/bin/patronictl &>/dev/null ; then
-	exit 2
-fi
-
-if ! command -v /bin/jq &>/dev/null ; then
-	exit 2
-fi
-
-if [[ $(/usr/local/bin/patronictl -c /etc/patroni/demo.yaml list -f json | jq ".[] | select(.Member==\"${MEMBER_NAME}\") | .Role") = "\"Leader\"" ]]; then
-	exit 0
-fi
-
-exit 1
+/usr/bin/curl \
+   -X GET -I --fail \
+#   --cacert ca.pem
+#   --cert p1.pem \
+#   --key p1-key.pem \
+   https://127.0.0.1:8008/primary &>/dev/null
 ```
 
 Alternative : `/usr/bin/curl --fail $IP:8008/leader` will return 0 (HTTP 200)
