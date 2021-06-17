@@ -59,3 +59,5 @@ WITH RECURSIVE mtree(id, name) AS (
 SELECT (breadth).id   
 FROM mtree m;
 
+-- Actually, I am more interested in getting the data from the "*DEPTH*" column
+-- but since it looked weird to query. I started with the easy one "id"
