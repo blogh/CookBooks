@@ -1,3 +1,5 @@
+-- Test case :
+
 DROP TABLE tree;
 CREATE TABLE tree(id int, parent_id int, name text);
 ALTER TABLE tree ADD PRIMARY KEY (id);
@@ -13,8 +15,8 @@ VALUES (1, NULL, 'Albert'),
        (9, 5, 'Dave'),
        (10, 9, 'Edwin');
 
-
--- shows:
+-- The followiny query shows:
+--
 --      row_to_json
 -- -----------------------
 --  {"*DEPTH*":0,"id":1}
@@ -29,9 +31,6 @@ VALUES (1, NULL, 'Albert'),
 --  {"*DEPTH*":4,"id":10}
 -- (10 rows)
 
-
-
-
 WITH RECURSIVE mtree(id, name) AS (
    SELECT id, name
      FROM tree
@@ -44,7 +43,8 @@ WITH RECURSIVE mtree(id, name) AS (
 SELECT row_to_json(breadth)
 FROM mtree m;
 
--- shows:
+-- The followiny query shows:
+--
 -- psql:/home/benoit/tmp/test.sql:38: ERROR:  CTE m does not have attribute 3
 
 WITH RECURSIVE mtree(id, name) AS (
