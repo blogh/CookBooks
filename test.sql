@@ -45,7 +45,7 @@ FROM mtree m;
 
 -- The followiny query shows:
 --
--- psql:/home/benoit/tmp/test.sql:38: ERROR:  CTE m does not have attribute 3
+-- ERROR:  CTE m does not have attribute 3
 
 WITH RECURSIVE mtree(id, name) AS (
    SELECT id, name
