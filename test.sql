@@ -56,8 +56,20 @@ WITH RECURSIVE mtree(id, name) AS (
      FROM tree AS t
           INNER JOIN mtree AS m ON t.parent_id = m.id
 ) SEARCH BREADTH FIRST BY id SET breadth
-SELECT (breadth).id   
+SELECT (breadth)."*DEPTH*"
 FROM mtree m;
 
--- Actually, I am more interested in getting the data from the "*DEPTH*" column
--- but since it looked weird to query. I started with the easy one "id"
+-- This works but feels a little hacky
+
+WITH RECURSIVE mtree(id, name) AS (
+   SELECT id, name
+     FROM tree
+    WHERE id = 1
+   UNION ALL
+   SELECT t.id, t.name
+     FROM tree AS t
+          INNER JOIN mtree AS m ON t.parent_id = m.id
+) SEARCH BREADTH FIRST BY id SET breadth
+SELECT row_to_json(breadth) -> '*DEPTH*'
+FROM mtree m;
+
