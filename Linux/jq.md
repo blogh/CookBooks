@@ -54,10 +54,10 @@ Result:
 "replica"
 ```
 
-Combine filters : 
+Combine filters :
 
 ```
-jq ".members[] 
+jq ".members[]
     | { server: name, role }" test.json
 ```
 ```
@@ -79,8 +79,8 @@ Result:
 Filter by value :
 
 ```
-jq '.members[] 
-    | select (.role == "replica") 
+jq '.members[]
+    | select (.role == "replica")
     | { name }' test.json
 ```
 ```
@@ -93,8 +93,8 @@ Result:
 }
 ```
 ```
-jq '.members[] 
-    | select (.role == "replica") 
+jq '.members[]
+    | select (.role == "replica")
     | .name' test.json
 
 ```
@@ -107,8 +107,8 @@ Result:
 Group by role and count occurences (and same with timelines):
 
 ```
-jq '[.members[].role] 
-    | group_by(.) 
+jq '[.members[].role]
+    | group_by(.)
     | map( { role: .[0], count: length } )' test.json
 ```
 ```
@@ -127,7 +127,7 @@ Result :
 ```
 ```
 jq '[.members[].timeline]
-    | group_by(.) 
+    | group_by(.)
     | map( { tl: .[0], count: length } )' test.json
 ```
 ```
@@ -143,10 +143,10 @@ Result:
 There is one leader (I know there is 3 nodes):
 
 ```
-jq '[.members[].role] 
-    | group_by(.) 
-    | map( { role: .[0], count: length } )  
-    | .[] | select( .role == "replica" ) 
+jq '[.members[].role]
+    | group_by(.)
+    | map( { role: .[0], count: length } )
+    | .[] | select( .role == "leader" )
     | .count == 1' test.json
 
 Result:
@@ -157,11 +157,11 @@ true
 There is two replicas (I know there is 3 nodes):
 
 ```
-jq '[.members[].role] 
-    | group_by(.) 
-    | map( { role: .[0], count: length } )  
-    | .[] 
-    | select( .role == "replica" ) 
+jq '[.members[].role]
+    | group_by(.)
+    | map( { role: .[0], count: length } )
+    | .[]
+    | select( .role == "replica" )
     | .count == 2' test.json
 
 Result:
@@ -172,13 +172,13 @@ Everybody has the same timeline:
 
 ```
 # Group all tl with a group by and check that there is only one group
-jq '[.members[].timeline] 
-    | group_by(.) 
-    | map( { timline: .[0], count: length } ) 
+jq '[.members[].timeline]
+    | group_by(.)
+    | map( { timline: .[0], count: length } )
     | length == 1' test.json
 ```
 
-## References 
+## References
 
 * https://stedolan.github.io/jq/manual/#Advancedfeatures
 * https://apihandyman.io/api-toolbox-jq-and-openapi-part-1-using-jq-to-extract-data-from-openapi-files/
