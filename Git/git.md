@@ -1,4 +1,4 @@
-# Git stuff
+ Git stuff
 ## Basic stuff
 ### Checkout
 
@@ -6,6 +6,16 @@
 git checkout -n <new name> <name of remote>/<name of branch>
 git checkout -t <name of remote>/<name of branch>
 ```
+### ssh
+
+* Add the ssh key in the interface
+* test your authentication with
+
+```
+ssh -T git@github.com
+```
+
+
 ## Mobing stuff around 
 ### Rebase
 
@@ -148,7 +158,7 @@ git add --patch
 ```
 
 ### Skip CI
-        
+
 Skipping a CI Build for non-code changes
 ```
 git push -o ci.skip
