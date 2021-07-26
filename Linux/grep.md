@@ -27,3 +27,9 @@ Grep for a date & hour, display only the matching string:
 ```
 grep -o '[0-9]\{4\}-[0-9]\{2\}-[0-9]\{2\} [0-9]\{2\}' postgresql-9.2-cms.log | head -n 1
 ```
+
+Remove noise from pg conf
+
+```
+grep -v "^\($\|[[:space:]]\|#\)" postgresql.conf
+```
