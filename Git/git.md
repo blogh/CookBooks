@@ -54,6 +54,13 @@ git rebase --interactive '1df13b0b8dd798156e7b357205d22e2abde4f635^'
    git rebase --continue
 ```
 
+Rebase from remote branch :
+
+```
+git fetch origin
+git rebase origin/master
+```
+
 ### Move commits from one branch to another
 
 Exemple from master => NewBranch
