@@ -17,8 +17,9 @@ lscpu
 echo
 echo "## Mémoire"
 echo
-grep -e "^Mem\|^Swap" /proc/meminfo
-#### Huge page allocation ?
+cat /proc/meminfo
+echo
+gree -m
 echo
 echo "## Disques"
 echo
