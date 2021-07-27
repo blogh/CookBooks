@@ -1,5 +1,7 @@
 ## Install
 
+requiers `sar` from the `sysstat` package
+
 ```
 sudo apt install pgcluu
 sudo yum install pgcluu
