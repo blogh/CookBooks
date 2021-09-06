@@ -36,6 +36,11 @@ Consider adding a little memory to have some slack.
 
 http://rhaas.blogspot.com/2019/01/how-much-maintenanceworkmem-do-i-need.html
 
+If the requiered memory is less than what we have set in `autovacuum_work_mem`
+then only this will be used.
+
+`autovacuum_work_mem` is capped to 1GB.
+
 # `autovacuum_naptime`
 
 The autovacuum launcher whole job is to make sure that each database is
