@@ -1,5 +1,5 @@
 # Journald & swap
-
+## Configuration
 From man journald.conf
 
 ```
@@ -17,10 +17,11 @@ If "persistent", data will be stored preferably on disk, i.e. below the
 disk is not writable.  
 
 "auto" is similar to "persistent" but the directory /var/log/journal is not
-created if needed, so that its existence controls where log data goes.  "none"
-turns off all storage, all log data received will be dropped. Forwarding to
-other targets, such as the console, the kernel log buffer, or a syslog socket
-will still work however. Defaults to "auto". 
+created if needed, so that its existence controls where log data goes.
+
+"none" turns off all storage, all log data received will be dropped. Forwarding
+to other targets, such as the console, the kernel log buffer, or a syslog
+socket will still work however. Defaults to "auto".
 ```
 
 Example :
@@ -39,7 +40,14 @@ $ du -sh /run/log/journal
 1.2G    /run/log/journal
 ```
 
-The journal can be moved to a persistent storage ny using `persistent` or
+Note: also check:
+* /etc/systemd/journald.conf
+* /etc/systemd/journald.conf.d/*.conf
+* /run/systemd/journald.conf.d/*.conf
+* /usr/lib/systemd/journald.conf.d/*.conf
+
+
+The journal can be moved to a persistent storage by using `persistent` or
 `auto` with a `/var/log/journal` directory.
 
 It's also possible to test the hypothesis by purging journal files and checking
@@ -72,3 +80,10 @@ Several parameters can be use to control the size for :
     before being rotated.
 
 MaxRetentionSec can be used to limit the retention in terms of time.
+
+## Reloading configuration
+
+Use restart or stop/start on some versions.
+See [bug](https://github.com/systemd/systemd/issues/2236)
+
+Adding removing /var/log/journal is detected on the fly.
