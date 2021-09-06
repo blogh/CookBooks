@@ -100,18 +100,33 @@ echo
 test -d $PGDATA/pg_xlog && ls -l $PGDATA/pg_xlog/0* | wc -l
 test -d $PGDATA/pg_wal  && ls -l $PGDATA/pg_wal/0*  | wc -l
 echo
-LOG_DIRECTORY=$(psql -XtAc "SELECT setting FROM pg_settings WHERE name LIKE 'log_directory'")
-[[ "${LOG_DIRECTORY:0:1}" == "/" ]] || LOG_DIRECTORY="$PGDATA/$LOG_DIRECTORY"
-echo "## Traces et erreurs ($LOG_DIRECTORY)"
-echo
-echo "### PANIC"
-grep "PANIC:" $LOG_DIRECTORY/*.log | sed -e "s/^.* PANIC: \(.*\)$/\1/gI" | sort | uniq -c | sort -r
-echo
-echo "### FATAL"
-grep "FATAL:" $LOG_DIRECTORY/*.log | sed -e "s/^.* FATAL: \(.*\)$/\1/gI" | sort | uniq -c | sort -r
-echo
-echo "### ERROR"
-grep "ERROR:" $LOG_DIRECTORY/*.log | sed -e "s/^.* ERROR: \(.*\)$/\1/gI" | sort | uniq -c | sort -r
+LOGGING_COLLECTOR=$(psql -XtAc "SELECT setting FROM pg_settings WHERE name LIKE 'logging_collector'")
+LOG_DIRECTORY=""
+if [[ "${LOGGING_COLLECTOR}" == "on" ]]; then
+	LOG_DIRECTORY=$(psql -XtAc "SELECT setting FROM pg_settings WHERE name LIKE 'log_directory'")
+	if [[ "${LOG_DIRECTORY:0:1}" == "/" ]]; then
+		LOG_DIRECTORY="$PGDATA/$LOG_DIRECTORY"
+	fi
+else
+	[[ -d "/var/log/postgresql" ]] || LOG_DIRECTORY="/var/log/postgresql"
+	[[ -d "/var/log/pgsql" ]] || LOG_DIRECTORY="/var/log/pgsql"
+fi
+
+if [[ ! -z "$LOG_DIRECTORY" ]]; then
+	echo "## Traces et erreurs ($LOG_DIRECTORY)"
+	ls -al $LOG_DIRECTORY/*.log
+	echo
+	echo "### PANIC"
+	grep "PANIC:" $LOG_DIRECTORY/*.log | sed -e "s/^.* PANIC: \(.*\)$/\1/gI" | sort | uniq -c | sort -r
+	echo
+	echo "### FATAL"
+	grep "FATAL:" $LOG_DIRECTORY/*.log | sed -e "s/^.* FATAL: \(.*\)$/\1/gI" | sort | uniq -c | sort -r
+	echo
+	echo "### ERROR"
+	grep "ERROR:" $LOG_DIRECTORY/*.log | sed -e "s/^.* ERROR: \(.*\)$/\1/gI" | sort | uniq -c | sort -r
+else
+	echo "## Traces et erreurs (NOT FOUND)"
+fi
 echo
 echo "## Crontab $USER"
 echo

@@ -30,7 +30,7 @@ echo
 
 echo "# Système d'exploitation"
 echo
-test -f /etc/os-release && cat /etc/os_release
+test -f /etc/os-release && cat /etc/os-release
 echo
 test -f /etc/debian-release && cat /etc/debian-version
 echo
