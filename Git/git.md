@@ -1,4 +1,4 @@
- Git stuff
+# Git stuff
 ## Basic stuff
 ### Checkout
 
@@ -156,6 +156,12 @@ Create a patch by comparing to master :
 
 ```
 git format-patch master -o ~/tmp/patches
+```
+
+to apply:
+
+```
+git am bugfix.patch
 ```
 
 ### Split modification in a file into separates commits
