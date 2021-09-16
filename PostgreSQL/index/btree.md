@@ -258,6 +258,30 @@ Note : on small indexes the first page can also be a leaf page :
 (1 row)
 ```
 
+## The search
+
+The code is located [here](https://git.postgresql.org/gitweb/?p=postgresql.git;a=blob;f=src/backend/access/nbtree/nbtsearch.c;h=d1177d8772cec4521f03440d31e095151650bd37;hb=HEAD)
+
+The tree is browsed by _bt_search() the page is browsed by _bt_binsrch()
+
+>  /*
+>   * At this point we have high == low, but be careful: they could point
+>   * past the last slot on the page.
+>   *
+>   * On a leaf page, we always return the first key >= scan key (resp. >
+>   * scan key), which could be the last slot + 1.
+>   */
+>  ...
+>   /*
+>    * On a non-leaf page, return the last key < scan key (resp. <= scan key).
+>    * There must be one if _bt_compare() is playing by the rules.
+>    */
+
+When on a leaf page we move right if scankey = high key _bt_moveright()
+
+
+
+
 ## Properties
 
 See (https://postgrespro.com/blog/pgsql/4161264)
@@ -510,6 +534,60 @@ order by 1, 2;
 (15 rows)
 ```
 
+Arrays support:
 
+```
+[local]:5433 postgres@postgres=# select opfname, opcname, amop.amopopr::regoperator, amop.amoppurpose, am.amname
+from pg_opclass opc, pg_opfamily opf, pg_am am, pg_amop amop
+where opc.opcname LIKE 'array%'
+and opf.oid = opc.opcfamily
+and am.oid = opf.opfmethod
+and amop.amopfamily = opc.opcfamily
+and amop.amoplefttype = opc.opcintype
+order by 1, 2;
+  opfname  |  opcname  |        amopopr        | amoppurpose | amname
+-----------+-----------+-----------------------+-------------+--------
+ array_ops | array_ops | <(anyarray,anyarray)  | s           | btree
+ array_ops | array_ops | <=(anyarray,anyarray) | s           | btree
+ array_ops | array_ops | =(anyarray,anyarray)  | s           | btree
+ array_ops | array_ops | >=(anyarray,anyarray) | s           | btree
+ array_ops | array_ops | >(anyarray,anyarray)  | s           | btree
+ array_ops | array_ops | =(anyarray,anyarray)  | s           | hash
+ array_ops | array_ops | &&(anyarray,anyarray) | s           | gin
+ array_ops | array_ops | @>(anyarray,anyarray) | s           | gin
+ array_ops | array_ops | <@(anyarray,anyarray) | s           | gin
+ array_ops | array_ops | =(anyarray,anyarray)  | s           | gin
+(10 rows)
+```
 
+hstore support:
+
+```
+[local]:5433 postgres@form=# select opfname, opcname, amop.amopopr::regoperator, amop.amoppurpose, am.amname
+from pg_opclass opc, pg_opfamily opf, pg_am am, pg_amop amop
+where opc.opcname LIKE '%hstore%'
+and opf.oid = opc.opcfamily
+and am.oid = opf.opfmethod
+and amop.amopfamily = opc.opcfamily
+and amop.amoplefttype = opc.opcintype
+order by 1, 2;
+     opfname      |     opcname      |       amopopr       | amoppurpose | amname
+------------------+------------------+---------------------+-------------+--------
+ btree_hstore_ops | btree_hstore_ops | #<#(hstore,hstore)  | s           | btree
+ btree_hstore_ops | btree_hstore_ops | #<=#(hstore,hstore) | s           | btree
+ btree_hstore_ops | btree_hstore_ops | =(hstore,hstore)    | s           | btree
+ btree_hstore_ops | btree_hstore_ops | #>=#(hstore,hstore) | s           | btree
+ btree_hstore_ops | btree_hstore_ops | #>#(hstore,hstore)  | s           | btree
+ gin_hstore_ops   | gin_hstore_ops   | @>(hstore,hstore)   | s           | gin
+ gin_hstore_ops   | gin_hstore_ops   | ?(hstore,text)      | s           | gin
+ gin_hstore_ops   | gin_hstore_ops   | ?|(hstore,text[])   | s           | gin
+ gin_hstore_ops   | gin_hstore_ops   | ?&(hstore,text[])   | s           | gin
+ gist_hstore_ops  | gist_hstore_ops  | @>(hstore,hstore)   | s           | gist
+ gist_hstore_ops  | gist_hstore_ops  | @(hstore,hstore)    | s           | gist
+ gist_hstore_ops  | gist_hstore_ops  | ?(hstore,text)      | s           | gist
+ gist_hstore_ops  | gist_hstore_ops  | ?|(hstore,text[])   | s           | gist
+ gist_hstore_ops  | gist_hstore_ops  | ?&(hstore,text[])   | s           | gist
+ hash_hstore_ops  | hash_hstore_ops  | =(hstore,hstore)    | s           | hash
+(15 rows)
+```
 
