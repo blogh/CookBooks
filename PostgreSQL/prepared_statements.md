@@ -23,7 +23,7 @@ DEALLOCATE
 ## How does PostgreSQL manage this
 
 ## What's the problem with connection pooling & prepared statements
-
+G
 In general :
 
 * parameters can be set for a session for example : `statement_timeout`, if we
@@ -124,11 +124,20 @@ preprepare.relation = 'preprepare.statements' # the aforementionned relation
 ```
 
 To prepare the statement run `SELECT prepare_all();`. If you use  pg > 8.4 and
-`preprepare.at_init` is set to `on`. It's done automatically.
+`preprepare.at_init` is set to `on`, it's done automatically when the
+connection is established.
 
 A `discard()` function is also present. It does: `DISCARD ALL - DEALLOCATE
 ALL`.
 
 The extension is old, and there is not much activity on it (but there might be
 no reason for more activity).
+
+>
+> Tested in v14 : `at_init` didn't work because an assert in
+> `StartTransactionCommand` compains about the state of the transaction already
+> being `START`. It works fine without, if you use a `connect_query=SELECT
+> prepare_all().
+>
+
 
