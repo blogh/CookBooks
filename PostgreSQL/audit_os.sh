@@ -25,6 +25,11 @@ echo "## Disques"
 echo
 lsblk
 echo
+echo
+echo "## Réseau"
+echo
+ip ad
+echo
 
 ## Système d'exploitation
 
