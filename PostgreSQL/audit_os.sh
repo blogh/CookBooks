@@ -19,7 +19,7 @@ echo "## Mémoire"
 echo
 cat /proc/meminfo
 echo
-gree -m
+free -m
 echo
 echo "## Disques"
 echo

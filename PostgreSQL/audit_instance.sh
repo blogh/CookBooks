@@ -5,8 +5,8 @@ export LANG=C
 test -z "$1" || export PGDATA=$1
 test -d "$PGDATA" || \
 {
-    echo "La variable PGDATA doit être configurée ou sa valeur fournie en premier argument de ce script." ;
-    exit -1;
+    echo "La variable PGDATA doit être configurée ou sa valeur fournie en premier argument de ce script." 
+    exit -1
 }
 
 test -z "$2" || export PGPORT=$2
@@ -14,7 +14,7 @@ test -z "$2" || export PGPORT=$2
 which pg_controldata >/dev/null 2>&1 || \
 {
     echo "which ne connaît pas pg_controldata. Merci de corriger la variable PATH."
-    exit -1;
+    exit -1
 }
 
 which psql >/dev/null 2>&1 || \
@@ -43,6 +43,112 @@ echo
 pg_controldata
 echo
 du -sh $PGDATA
+echo
+echo "## Orphaned Files"
+psql $PSQL_OPTIONS -c "
+WITH ver AS (
+  select 
+    current_setting('server_version_num') pgversion, 
+    v :: integer / 10000 || '.' || mod(v :: integer, 10000)/ 100 AS version 
+  FROM 
+    current_setting('server_version_num') v
+), 
+tbl_paths AS (
+  SELECT 
+    tbs.oid AS tbs_oid,
+    spcname, 
+    'pg_tblspc/' || tbs.oid || '/' || (
+      SELECT 
+        dir 
+      FROM 
+        pg_ls_dir(
+          'pg_tblspc/' || tbs.oid || '/', true, 
+          false
+        ) dir 
+      WHERE 
+        dir LIKE E'PG\\_' || ver.version || E'\\_%'
+    ) as tbl_path 
+  FROM 
+    pg_tablespace tbs, 
+    ver 
+  WHERE 
+    tbs.spcname NOT IN ('pg_default', 'pg_global')
+), 
+files AS (
+  SELECT 
+    d.oid AS database_oid, 
+    0 AS tbs_oid, 
+    'base/' || d.oid AS path, 
+    file_name AS file_name, 
+    substring(
+      file_name 
+      from 
+        E'[0-9]+'
+    ) AS base_name 
+  FROM 
+    pg_database d, 
+    pg_ls_dir('base/' || d.oid, true, false) AS file_name 
+  WHERE 
+    d.datname = current_database() 
+  UNION ALL 
+  SELECT 
+    d.oid, 
+    tbp.tbs_oid, 
+    tbl_path || '/' || d.oid, 
+    file_name, 
+    (
+      substring(
+        file_name 
+        from 
+          E'[0-9]+'
+      )
+    ) AS base_name 
+  FROM 
+    pg_database d, 
+    tbl_paths tbp, 
+    pg_ls_dir(
+      tbp.tbl_path || '/' || d.oid, true, false
+    ) AS file_name 
+  WHERE 
+    d.datname = current_database()
+), 
+orphans AS (
+  SELECT 
+    tbs_oid, 
+    base_name, 
+    file_name, 
+    current_setting('data_directory')|| '/' || path || '/' || file_name as orphaned_file, 
+    pg_filenode_relation (tbs_oid, base_name :: oid) as rel_without_pgclass 
+  FROM 
+    ver, 
+    files 
+    LEFT JOIN pg_class c ON (
+      c.relfilenode :: text = files.base_name 
+      OR (
+        c.oid :: text = files.base_name 
+        and c.relfilenode = 0 
+        and c.relname like 'pg_%'
+      )
+    ) 
+  WHERE 
+    c.oid IS null 
+    AND lower(file_name) NOT LIKE 'pg_%'
+) 
+SELECT 
+  orphaned_file, 
+  pg_size_pretty(
+    (
+      pg_stat_file(orphaned_file)
+    ).size
+  ) as file_size, 
+  (
+    pg_stat_file(orphaned_file)
+  ).modification as modification_date, 
+  current_database() 
+FROM 
+  orphans 
+WHERE 
+  rel_without_pgclass IS NULL;"
 echo
 echo "## Configuration"
 echo
