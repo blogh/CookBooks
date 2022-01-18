@@ -450,7 +450,7 @@ ORDER BY 1, 2;
 EOF
 
 echo "### function and procedures per namespace"
-if [[ "$VERSION" -ge "1200" ]]; then
+if [[ "$VERSION" -ge "1100" ]]; then
 psql $PSQL_OPTIONS <<EOF
 SELECT nspname, 
        rolname,
@@ -1068,7 +1068,7 @@ SELECT count(*)
 EOF
 
 echo "### procedures & functions per namespace and kind in user space"
-if [[ "$VERSION" -ge "1200" ]]; then
+if [[ "$VERSION" -ge "1100" ]]; then
 psql $PSQL_OPTIONS <<EOF
 SELECT n.nspname, 
        l.lanname, 
