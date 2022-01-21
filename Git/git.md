@@ -16,7 +16,7 @@ ssh -T git@github.com
 ```
 
 
-## Mobing stuff around 
+## Moving stuff around 
 ### Rebase
 
 https://git-rebase.io/
@@ -43,8 +43,7 @@ git branch --set-upstream-to=<branch>
 git push --force origin <my branch>
 ```
 
-
-It can be used to reorder patches inside a branch :
+#### Reorder patches inside a branch
 
 ```
 git rebase --interactive '1df13b0b8dd798156e7b357205d22e2abde4f635^'
