@@ -260,6 +260,8 @@ Note : on small indexes the first page can also be a leaf page :
 
 ## The search
 
+FIXME : Complete this
+
 The code is located [here](https://git.postgresql.org/gitweb/?p=postgresql.git;a=blob;f=src/backend/access/nbtree/nbtsearch.c;h=d1177d8772cec4521f03440d31e095151650bd37;hb=HEAD)
 
 The tree is browsed by _bt_search() the page is browsed by _bt_binsrch()
@@ -426,33 +428,48 @@ Supported operations for an am & opclass :
 Difference between text_pattern_ops and text_ops :
 
 ```
-[local]:5433 postgres@postgres=# select opfname, opcname, amop.amopopr::regoperator, amop.amoppurpose
-from pg_opclass opc, pg_opfamily opf, pg_am am, pg_amop amop
+[local]:5433 postgres@postgres=# select opfname, opcname, amop.amopopr::regoperator, CASE amop.amoppurpose WHEN 's' THEN 'search ' ELSE 'ordering' END, op.oprcode
+from pg_opclass opc, pg_opfamily opf, pg_am am, pg_amop amop, pg_operator op
 where opc.opcname IN('text_ops', 'text_pattern_ops')
 and opf.oid = opc.opcfamily
 and am.oid = opf.opfmethod
 and amop.amopfamily = opc.opcfamily
 and am.amname = 'btree'
 and amop.amoplefttype = opc.opcintype
+and amop.amopopr = op.oid
 order by 1, 2;
-     opfname      |     opcname      |     amopopr
-------------------+------------------+-----------------
- text_ops         | text_ops         | <(text,name)
- text_ops         | text_ops         | <=(text,name)
- text_ops         | text_ops         | =(text,name)
- text_ops         | text_ops         | >=(text,name)
- text_ops         | text_ops         | >(text,name)
- text_ops         | text_ops         | <(text,text)
- text_ops         | text_ops         | <=(text,text)
- text_ops         | text_ops         | =(text,text)
- text_ops         | text_ops         | >=(text,text)
- text_ops         | text_ops         | >(text,text)
- text_pattern_ops | text_pattern_ops | ~<~(text,text)
- text_pattern_ops | text_pattern_ops | ~<=~(text,text)
- text_pattern_ops | text_pattern_ops | =(text,text)
- text_pattern_ops | text_pattern_ops | ~>=~(text,text)
- text_pattern_ops | text_pattern_ops | ~>~(text,text)
+     opfname      |     opcname      |     amopopr     |  case   |     oprcode
+------------------+------------------+-----------------+---------+-----------------
+ text_ops         | text_ops         | <(text,name)    | search  | textltname
+ text_ops         | text_ops         | <=(text,name)   | search  | textlename
+ text_ops         | text_ops         | =(text,name)    | search  | texteqname
+ text_ops         | text_ops         | >=(text,name)   | search  | textgename
+ text_ops         | text_ops         | >(text,name)    | search  | textgtname
+ text_ops         | text_ops         | <(text,text)    | search  | text_lt
+ text_ops         | text_ops         | <=(text,text)   | search  | text_le
+ text_ops         | text_ops         | =(text,text)    | search  | texteq
+ text_ops         | text_ops         | >=(text,text)   | search  | text_ge
+ text_ops         | text_ops         | >(text,text)    | search  | text_gt
+ text_pattern_ops | text_pattern_ops | ~<~(text,text)  | search  | text_pattern_lt
+ text_pattern_ops | text_pattern_ops | ~<=~(text,text) | search  | text_pattern_le
+ text_pattern_ops | text_pattern_ops | =(text,text)    | search  | texteq
+ text_pattern_ops | text_pattern_ops | ~>=~(text,text) | search  | text_pattern_ge
+ text_pattern_ops | text_pattern_ops | ~>~(text,text)  | search  | text_pattern_gt
 (15 rows)
+
+-- Better query with the operator name
+select opfname, opcname, amop.amopopr::regoperator, CASE amop.amoppurpose WHEN 's' THEN 'search ' ELSE 'ordering' END, op.oprcode
+from pg_opclass opc, pg_opfamily opf, pg_am am, pg_amop amop, pg_operator op
+where opc.opcname LIKE 'point_ops'
+and opf.oid = opc.opcfamily
+and am.oid = opf.opfmethod
+and amop.amopfamily = opc.opcfamily
+and am.amname = 'gist'
+and amop.amoplefttype = opc.opcintype
+and amop.amopopr = op.oid
+order by 1, 2;
+
+
 
 -- t.t as fr_FR.utf8 collation
 -- classic index
