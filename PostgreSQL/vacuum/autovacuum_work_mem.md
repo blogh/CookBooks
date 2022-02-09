@@ -1,3 +1,5 @@
+**Valid for PostgreSQL 14**
+
 # Sizing autovacuum_work_mem
 
 Reference : https://rhaas.blogspot.com/2019/01/how-much-maintenanceworkmem-do-i-need.html
