@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 export LANG=C
 
@@ -6,7 +6,7 @@ test -z "$1" || export PGDATA=$1
 test -d "$PGDATA" || \
 {
     echo "La variable PGDATA doit être configurée ou sa valeur fournie en premier argument de ce script." 
-    exit -1
+    exit 1
 }
 
 test -z "$2" || export PGPORT=$2
@@ -14,7 +14,7 @@ test -z "$2" || export PGPORT=$2
 which pg_controldata >/dev/null 2>&1 || \
 {
     echo "which ne connaît pas pg_controldata. Merci de corriger la variable PATH."
-    exit -1
+    exit 1
 }
 
 which psql >/dev/null 2>&1 || \
@@ -34,7 +34,7 @@ echo
 echo "## Processus"
 echo
 PGPID=$(head -n1 "$PGDATA/postmaster.pid" 2>/dev/null)        
-ps --forest -f --ppid $PGPID --pid $PGPID 
+ps --forest -f --ppid "$PGPID" --pid "$PGPID"
 echo
 echo "## Répertoire de données"
 echo
@@ -42,7 +42,7 @@ echo "PGDATA $PGDATA"
 echo
 pg_controldata
 echo
-du -sh $PGDATA
+du -sh "$PGDATA"
 echo
 echo "## Orphaned Files"
 psql $PSQL_OPTIONS -c "
@@ -156,29 +156,29 @@ echo "### ... du moteur"
 echo
 if [[ -f "$PGDATA/postgresql.conf" ]]; then
 	echo "#### $PGDATA/postgresql.conf"
-	cat $PGDATA/postgresql.conf
+	cat "$PGDATA/postgresql.conf"
 else
 	CONFFILE=$(psql -XtAc "SELECT setting FROM pg_settings WHERE name = 'config_file';")
 	if [[ -f "$CONFFILE" ]]; then
 		echo "#### $CONFFILE"
-		cat $CONFFILE
+		cat "$CONFFILE"
 	else
 		echo "WARNING: postgresql.conf not found"
 	fi
 fi
 echo
-cat $PGDATA/postgresql.auto.conf
+cat "$PGDATA/postgresql.auto.conf"
 echo
 echo "### ... des accès"
 echo
 if [[ -f "$PGDATA/pg_hba.conf" ]]; then
 	echo "#### $PGDATA/pg_hba.conf"
-	cat $PGDATA/pg_hba.conf
+	cat "$PGDATA/pg_hba.conf"
 else
 	HBAFILE=$(psql -XtAc "SELECT setting FROM pg_settings WHERE name = 'hba_file';")
 	if [[ -f "$HBAFILE" ]]; then
 		echo "#### $HBAFILE"
-		cat $HBAFILE
+		cat "$HBAFILE"
 	else
 		echo "WARNING: pg_hba not found"
 	fi
@@ -186,12 +186,12 @@ fi
 echo
 if [[ -f "$PGDATA/pg_ident.conf" ]]; then
 	echo "#### $PGDATA/pg_ident.conf"
-	cat $PGDATA/pg_ident.conf
+	cat "$PGDATA/pg_ident.conf"
 else
 	IDENTFILE=$(psql -XtAc "SELECT setting FROM pg_settings WHERE name = 'ident_file';")
 	if [[ -f "$IDENTFILE" ]]; then
 		echo "#### $IDENTFILE"
-		cat $IDENTFILE
+		cat "$IDENTFILE"
 	else
 		echo "WARNING: pg_ident not found"
 	fi
@@ -199,18 +199,25 @@ fi
 echo
 echo "### ... de la restauration"
 echo
-test -f $PGDATA/recovery.conf && cat $PGDATA/recovery.conf || echo "WARNING: recovery.conf not found"
+test -f "$PGDATA/recovery.conf" && cat "$PGDATA/recovery.conf" || echo "WARNING: recovery.conf not found"
 echo
 echo "## Journaux de transactions"
 echo
-test -d $PGDATA/pg_xlog && ls -l $PGDATA/pg_xlog/0* | wc -l
-test -d $PGDATA/pg_wal  && ls -l $PGDATA/pg_wal/0*  | wc -l
+if [[ -d "$PGDATA/pg_xlog" ]]; then
+	echo "WAL: "$(find "$PGDATA/pg_xlog" -type f -regextype sed -regex '.*/[0-9]\{24\}' | wc -l)
+	echo "Archive .ready:" $(find "$PGDATA/pg_xlog/archive_status" -type f -regextype sed -regex '.*/[0-9]\{24\}\.ready' | wc -l)
+elif [[ -d "$PGDATA/pg_wal" ]]; then
+	echo "WAL: "$(find "$PGDATA/pg_wal" -type f -regextype sed -regex '.*/[0-9]\{24\}' | wc -l)
+	echo "Archive .ready:" $(find "$PGDATA/pg_wal/archive_status" -type f -regextype sed -regex '.*/[0-9]\{24\}\.ready' | wc -l)
+else
+	echo "Couldn't find wal directory"
+fi
 echo
 LOGGING_COLLECTOR=$(psql -XtAc "SELECT setting FROM pg_settings WHERE name LIKE 'logging_collector'")
 LOG_DIRECTORY=""
 if [[ "${LOGGING_COLLECTOR}" == "on" ]]; then
 	LOG_DIRECTORY=$(psql -XtAc "SELECT setting FROM pg_settings WHERE name LIKE 'log_directory'")
-	if [[ "${LOG_DIRECTORY:0:1}" == "/" ]]; then
+	if [[ "${LOG_DIRECTORY:0:1}" != "/" ]]; then
 		LOG_DIRECTORY="$PGDATA/$LOG_DIRECTORY"
 	fi
 else
@@ -218,7 +225,7 @@ else
 	[[ -d "/var/log/pgsql" ]] || LOG_DIRECTORY="/var/log/pgsql"
 fi
 
-if [[ ! -z "$LOG_DIRECTORY" ]]; then
+if [[ -n "$LOG_DIRECTORY" ]]; then
 	echo "## Traces et erreurs ($LOG_DIRECTORY)"
 	ls -al $LOG_DIRECTORY/*.log
 	echo
@@ -249,6 +256,7 @@ psql $PSQL_OPTIONS -c "select version();"
 VERSION=$(psql -XtAc "SELECT LEFT(setting, -2) FROM pg_settings WHERE name = 'server_version_num';")
 
 echo "### start time"
+uptime
 psql $PSQL_OPTIONS -c "select pg_postmaster_start_time();"
 
 echo "### configuration sources"
@@ -305,10 +313,16 @@ psql $PSQL_OPTIONS -c "SELECT r.rolname, r.rolsuper, r.rolinherit,
   ARRAY(SELECT b.rolname
         FROM pg_catalog.pg_auth_members m
         JOIN pg_catalog.pg_roles b ON (m.roleid = b.oid)
-        WHERE m.member = r.oid) as memberof
-, r.rolreplication
-, r.rolbypassrls
-FROM pg_catalog.pg_roles r
+        WHERE m.member = r.oid) as memberof,
+  r.rolreplication,
+  r.rolbypassrls,
+  CASE WHEN s.passwd IS NULL THEN NULL
+       WHEN s.passwd LIKE 'md5%' THEN 'md5'
+       WHEN s.passwd LIKE 'SCRAM-SHA-256' THEN 'scram-sha-257'
+       ELSE 'Weird password format'
+  END AS password_fmt
+FROM pg_catalog.pg_roles r 
+     INNER JOIN pg_catalog.pg_shadow s ON r.rolname = s.usename
 WHERE r.rolname !~ '^pg_'
 ORDER BY 1;"
 
@@ -335,6 +349,13 @@ psql $PSQL_OPTIONS -c "select * from pg_subscription;"
 
 echo "## pg_settings"
 psql $PSQL_OPTIONS -c "select * from pg_settings;"
+
+echo "## pg_stat_bgwrite"
+psql $PSQL_OPTIONS -x <<EOF
+SELECT 100 * checkpoints_timed / (checkpoints_timed + checkpoints_req) AS pct_checkpoint_timed,
+       *
+  FROM pg_stat_bgwriter;
+EOF
 
 for d in $(psql -XAtc "SELECT datname 
     FROM pg_database 
@@ -495,25 +516,32 @@ ORDER BY 1;
 EOF
 
 echo "## relations"
-echo "### relking size and count"
+echo "### relkind, persistence size and count"
 psql $PSQL_OPTIONS <<EOF
 SELECT CASE relkind
-          WHEN 'r' THEN 'ordinary table'
-          WHEN 'i' THEN 'index'
-          WHEN 'S' THEN 'sequence'
-          WHEN 't' THEN 'TOAST table'
-          WHEN 'v' THEN 'view'
-          WHEN 'm' THEN 'materialized view'
-          WHEN 'c' THEN 'composite type'
-          WHEN 'f' THEN 'foreign table'
-          WHEN 'p' THEN 'partitioned table'
-          WHEN 'I' THEN 'partitioned index'
-	  ELSE relkind::text
-      END,  
-      count(*), 
+          WHEN 'r' THEN 'ordinary table (r)'
+          WHEN 'i' THEN 'index (i)'
+          WHEN 'S' THEN 'sequence (S)'
+          WHEN 't' THEN 'TOAST table (t)'
+          WHEN 'v' THEN 'view (v)'
+          WHEN 'm' THEN 'materialized view (m)'
+          WHEN 'c' THEN 'composite type (c)'
+          WHEN 'f' THEN 'foreign table (f)'
+          WHEN 'p' THEN 'partitioned table (p)'
+          WHEN 'I' THEN 'partitioned index (I)'
+          ELSE relkind::text
+      END,
+      CASE relpersistence
+          WHEN 'p' THEN 'permanent'
+          WHEN 'u' THEN 'unlogged'
+          WHEN 't' THEN 'temporary'
+          ELSE relpersistence::text
+      END,
+      count(*),
       pg_size_pretty(sum(pg_table_size(oid)))
  FROM pg_class
-GROUP BY 1;
+GROUP BY GROUPING SETS ((1,2))
+ORDER BY 1,2;
 EOF
 
 echo "### relation depending on an extension"

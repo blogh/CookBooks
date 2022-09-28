@@ -9,7 +9,7 @@ Modify one of these files :
 
 Then : 
 ```
-sysctl -p
+sysctl -p <file>
 ```
 
 ## Swap
@@ -35,10 +35,17 @@ Translation Lookaside Buffer. The TLB is used to convert the addresses into a
 physical address.
 
 If the address is not in the TLB, the address must be found into another memory
-zone.
+zone. In addition when a process is swapped from processor, the TLB must be
+flushed and the TLB of the next process must be copied.
 
-When a process is swapped from processor, the TLB must be flushed and the TLB
-of the next process must be copied.
+There is therefore a perfomance benefit to have a small TLB. 
+
+When a huge memory allocation is done and huge pages are enabled, the number of
+PT entries requiered to "memorize" the allocation is smaller than without huge
+pages. The memory allocated for this is therefore smaller. In cases like
+PostgreSQL's shared memory which is accessed by all Pg's backends, it can
+represent a lot of saved memory. (10GB of sb and 100 connections = max 2GB PTE
+without hp)
 
 Hugepages requiers a processor compatible with pse:
 ```
@@ -162,7 +169,7 @@ How to do it :
    => The easiest way is to find out is to check to see if /sys/firmware/efi
    exists. It does not appear if you booted using traditional BIOS.
 
-## Pg & memory
+## Pg & overcommit memory
 
 The parameter `vm.overcommit_memory` controls the overcommit policy : 
 

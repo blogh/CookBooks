@@ -1,6 +1,5 @@
 ```
-apst
-t-cache search postgresql 9.4
+apt-cache search postgresql 9.4
 
 echo c | sudo tee /proc/sysrq-trigger  ==> kernel panic + /etc/sysconfig.conf => kernel.panic = 20 (20 secs avant reboot)
 

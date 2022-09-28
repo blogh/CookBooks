@@ -30,13 +30,20 @@ LIMIT 50;
 
 # queries to vacuum table picked by the lastanalyze service of [check_pgactivity](https://github.com/OPMDG/check_pgactivity)
 
-Pre 9.4 these queries dont work because `n_mod_since_analyze`, doesn't exist.
 
 
 List table without analyze for more than a month :
 
 ```
+-- Post 9.4 with `n_mod_since_analyze`
 SELECT schemaname, relname, pg_size_pretty(pg_relation_size(schemaname || '.' || relname)), n_live_tup, n_mod_since_analyze, last_analyze, last_autoanalyze, analyze_count, autoanalyze_count
+FROM pg_stat_user_tables 
+WHERE (current_timestamp - last_analyze > interval '1 month' AND current_timestamp - last_autoanalyze > interval '1 month')
+   OR (last_analyze IS NULL AND last_autoanalyze IS NULL)
+ORDER BY pg_relation_size(schemaname || '.' || relname) DESC;
+
+-- Pre 9.4 without `n_mod_since_analyze`
+SELECT schemaname, relname, pg_size_pretty(pg_relation_size(schemaname || '.' || relname)), last_analyze, last_autoanalyze, analyze_count, autoanalyze_count
 FROM pg_stat_user_tables 
 WHERE (current_timestamp - last_analyze > interval '1 month' AND current_timestamp - last_autoanalyze > interval '1 month')
    OR (last_analyze IS NULL AND last_autoanalyze IS NULL)

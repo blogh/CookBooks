@@ -23,7 +23,7 @@ Parameters:
   XID
 
 Commands:
-* `VACUUM (INDEX CLEANUP AUTO|ON|OFF`
+* `VACUUM (INDEX_CLEANUP AUTO|ON|OFF`
    - `AUTO`: can skip index mainteance if there is not enought dead line (ie
      it's too expensive to do the maintenance). (default)
    - `ON`: force cleanup (old behavior)
@@ -117,7 +117,7 @@ Commands:
   - prevents returning space to the operation system.
   - unavailable for `VACUUM FULL`
   - storage parameters: `vacuum_truncate` and `toast.vacuum_truncate`
-* `VACUUM (INDEX CLEANUP ON|OFF`
+* `VACUUM (INDEX_CLEANUP ON|OFF`
    - `ON`: force cleanup (default)
    - `OFF`: disable index cleanup for cases where we have to `VACUUM` quickly
      e.g. to prevente Wraparound.

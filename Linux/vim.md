@@ -176,3 +176,10 @@ Insert nbsp in insert mode:
 ```
 
 Insert with `<Ctrl-K>` then type the character combination
+
+# Marks
+
+`ma`              : add mark `a`
+`'a`              : goto mark `a`
+`:marks`          : listmarks
+`:delmarks a-z`   : delete marks from a to z
