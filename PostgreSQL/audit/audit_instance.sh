@@ -221,8 +221,8 @@ if [[ "${LOGGING_COLLECTOR}" == "on" ]]; then
 		LOG_DIRECTORY="$PGDATA/$LOG_DIRECTORY"
 	fi
 else
-	[[ -d "/var/log/postgresql" ]] || LOG_DIRECTORY="/var/log/postgresql"
-	[[ -d "/var/log/pgsql" ]] || LOG_DIRECTORY="/var/log/pgsql"
+	[[ -d "/var/log/postgresql" ]] && LOG_DIRECTORY="/var/log/postgresql"
+	[[ -d "/var/log/pgsql" ]] && LOG_DIRECTORY="/var/log/pgsql"
 fi
 
 if [[ -n "$LOG_DIRECTORY" ]]; then
@@ -332,23 +332,26 @@ from pg_db_role_setting drs
 left join pg_database d on d.oid=drs.setdatabase
 left join pg_roles r on r.oid=drs.setrole;"
 
+echo "## pg_settings"
+psql $PSQL_OPTIONS -c "select * from pg_settings;"
+
 echo "## pg_file_settings"
 psql $PSQL_OPTIONS -c "select * from pg_file_settings ;"
 
 echo "## pg_hba_file_rules"
 psql $PSQL_OPTIONS -c "select * from pg_hba_file_rules;"
 
-echo "## pg_publication"
-psql $PSQL_OPTIONS -c "select * from pg_publication;"
+echo "## pg_stat_replication"
+psql $PSQL_OPTIONS -c "select * from pg_stat_replication;"
 
 echo "## pg_replication_slots"
 psql $PSQL_OPTIONS -c "select * from pg_replication_slots;"
 
+echo "## pg_publication"
+psql $PSQL_OPTIONS -c "select * from pg_publication;"
+
 echo "## pg_subscription"
 psql $PSQL_OPTIONS -c "select * from pg_subscription;"
-
-echo "## pg_settings"
-psql $PSQL_OPTIONS -c "select * from pg_settings;"
 
 echo "## pg_stat_bgwrite"
 psql $PSQL_OPTIONS -x <<EOF
