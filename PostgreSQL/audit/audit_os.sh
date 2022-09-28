@@ -23,7 +23,7 @@ free -m
 echo
 echo "## Disques"
 echo
-lsblk
+lsblk -o NAME,TYPE,SIZE,SCHED,ROTA,MOUNTPOINT
 echo
 echo
 echo "## Réseau"
