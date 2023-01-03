@@ -72,12 +72,17 @@ echo
 cat /etc/fstab
 echo 
 echo "## Packages"
+echo 
 which rpm &>/dev/null && CMD="rpm -qa" || CMD="dpkg -l"
 echo
 $CMD | grep postgres
 echo
 $CMD | grep kernel
 echo
-$CMD | grep glibc
+echo "## glibc"
 echo
-
+ldd --version
+echo
+echo "## dmesg"
+echo
+dmesg

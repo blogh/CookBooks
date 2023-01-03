@@ -153,7 +153,6 @@ echo
 echo "## Configuration"
 echo
 echo "### ... du moteur"
-echo
 if [[ -f "$PGDATA/postgresql.conf" ]]; then
 	echo "#### $PGDATA/postgresql.conf"
 	cat "$PGDATA/postgresql.conf"
@@ -257,35 +256,75 @@ VERSION=$(psql -XtAc "SELECT LEFT(setting, -2) FROM pg_settings WHERE name = 'se
 
 echo "### start time"
 uptime
-psql $PSQL_OPTIONS -c "select pg_postmaster_start_time();"
+echo
+if [[ "$VERSION" -ge "1000" ]]; then
+psql $PSQL_OPTIONS -x << EOF
+-- From check_pga
+SELECT current_timestamp - pg_postmaster_start_time() AS time_since_postmaster_start,
+       current_timestamp - pg_conf_load_time() AS time_since_conf_reload,
+       pg_postmaster_start_time(),
+       pg_conf_load_time(),
+       -- oldest child (usually checkpointer, startup...)
+       current_timestamp - min(backend_start) AS age_oldest_child_process,
+       min(backend_start) AS oldest_child_process
+ FROM pg_stat_activity WHERE backend_type != 'client backend'
+EOF
+else
+psql $PSQL_OPTIONS -x << EOF
+-- From check_pga
+SELECT extract('epoch' from (current_timestamp - pg_postmaster_start_time())) AS time_since_postmaster_start,
+       extract('epoch' from (current_timestamp - pg_conf_load_time())) AS time_since_conf_reload,
+       pg_postmaster_start_time(),
+       pg_conf_load_time(),
+EOF
+fi
 
-echo "### configuration sources"
-psql $PSQL_OPTIONS -c "select source, sourcefile, count(*)
+echo "### configuration"
+
+echo "#### configuration sources"
+psql $PSQL_OPTIONS << EOF
+select source, sourcefile, count(*)
 from pg_settings
-group by 1, 2;"
+group by 1, 2;
+EOF
 
-echo "### non default configuration"
-psql $PSQL_OPTIONS -c "select source, name, setting, unit
+echo "#### non default configuration"
+psql $PSQL_OPTIONS << EOF 
+select source, name, setting, unit
 from pg_settings
 where source not in ('configuration file', 'default')
-order by source, name;"
+order by source, name;
+EOF
 
-echo "### Database list"
-psql $PSQL_OPTIONS -c "SELECT d.datname as \"Name\",
-       pg_catalog.pg_get_userbyid(d.datdba) as \"Owner\",
-       pg_catalog.pg_encoding_to_char(d.encoding) as \"Encoding\",
-       d.datcollate as \"Collate\",
-       d.datctype as \"Ctype\",
-       pg_catalog.array_to_string(d.datacl, E'\n') AS \"Access privileges\",
+#echo "#### pg_settings"
+#psql $PSQL_OPTIONS -c "select * from pg_settings;"
+#
+echo "#### pg_file_settings"
+psql $PSQL_OPTIONS -c "select * from pg_file_settings ;"
+
+echo "#### pg_hba_file_rules"
+psql $PSQL_OPTIONS -c "select * from pg_hba_file_rules;"
+
+echo "### Instance info"
+
+echo "#### Database list"
+psql $PSQL_OPTIONS << EOF
+SELECT d.datname as "Name",
+       pg_catalog.pg_get_userbyid(d.datdba) as "Owner",
+       pg_catalog.pg_encoding_to_char(d.encoding) as "Encoding",
+       d.datcollate as "Collate",
+       d.datctype as "Ctype",
+       pg_catalog.array_to_string(d.datacl, E'\n') AS "Access privileges",
        CASE WHEN pg_catalog.has_database_privilege(d.datname, 'CONNECT')
             THEN pg_catalog.pg_size_pretty(pg_catalog.pg_database_size(d.datname))
             ELSE 'No Access'
-       END as \"Size\",
-       t.spcname as \"Tablespace\",
-       pg_catalog.shobj_description(d.oid, 'pg_database') as \"Description\"
+       END as "Size",
+       t.spcname as "Tablespace",
+       pg_catalog.shobj_description(d.oid, 'pg_database') as "Description"
 FROM pg_catalog.pg_database d
   JOIN pg_catalog.pg_tablespace t on d.dattablespace = t.oid
-ORDER BY 1;"
+ORDER BY 1;
+EOF
 
 #psql $PSQL_OPTIONS -c "create extension if not exists pg_buffercache;
 #select case when datname is null then '<vide>' else datname end as datname,
@@ -295,19 +334,22 @@ ORDER BY 1;"
 #group by 1
 #order by count(*) desc;"
 
-echo "### Tablespaces"
-psql $PSQL_OPTIONS -c "SELECT spcname AS \"Name\",
-  pg_catalog.pg_get_userbyid(spcowner) AS \"Owner\",
-  pg_catalog.pg_tablespace_location(oid) AS \"Location\",
-  pg_size_pretty(pg_tablespace_size(oid)) AS \"Size\",
-  pg_catalog.array_to_string(spcacl, E'\n') AS \"Access privileges\",
-  spcoptions AS \"Options\",
-  pg_catalog.shobj_description(oid, 'pg_tablespace') AS \"Description\"
+echo "#### Tablespaces"
+psql $PSQL_OPTIONS << EOF
+SELECT spcname AS "Name",
+  pg_catalog.pg_get_userbyid(spcowner) AS "Owner",
+  pg_catalog.pg_tablespace_location(oid) AS "Location",
+  pg_size_pretty(pg_tablespace_size(oid)) AS "Size",
+  pg_catalog.array_to_string(spcacl, E'\n') AS "Access privileges",
+  spcoptions AS "Options",
+  pg_catalog.shobj_description(oid, 'pg_tablespace') AS "Description"
 FROM pg_catalog.pg_tablespace
-ORDER BY 1;"
+ORDER BY 1;
+EOF
 
-echo "### users & roles"
-psql $PSQL_OPTIONS -c "SELECT r.rolname, r.rolsuper, r.rolinherit,
+echo "#### users & roles"
+psql $PSQL_OPTIONS <<EOF 
+SELECT r.rolname, r.rolsuper, r.rolinherit,
   r.rolcreaterole, r.rolcreatedb, r.rolcanlogin,
   r.rolconnlimit, r.rolvaliduntil,
   ARRAY(SELECT b.rolname
@@ -324,41 +366,54 @@ psql $PSQL_OPTIONS -c "SELECT r.rolname, r.rolsuper, r.rolinherit,
 FROM pg_catalog.pg_roles r 
      INNER JOIN pg_catalog.pg_shadow s ON r.rolname = s.usename
 WHERE r.rolname !~ '^pg_'
-ORDER BY 1;"
+ORDER BY 1;
+EOF
 
-echo "### specific user and database config"
-psql $PSQL_OPTIONS -c "select datname, rolname, setconfig
-from pg_db_role_setting drs
-left join pg_database d on d.oid=drs.setdatabase
-left join pg_roles r on r.oid=drs.setrole;"
+echo "#### specific user and database config"
+psql $PSQL_OPTIONS <<EOF
+SELECT datname, rolname, setconfig
+ FROM pg_db_role_setting drs
+      left join pg_database d on d.oid=drs.setdatabase
+      left join pg_roles r on r.oid=drs.setrole;
+EOF
 
-echo "## pg_settings"
-psql $PSQL_OPTIONS -c "select * from pg_settings;"
+echo "#### pg_stat_bgwriter"
+psql $PSQL_OPTIONS -x <<EOF
+SELECT CASE WHEN checkpoints_timed + checkpoints_req > 0
+            THEN 100 * checkpoints_timed / (checkpoints_timed + checkpoints_req)
+	    ELSE 0
+       END AS pct_checkpoint_timed, *
+  FROM pg_stat_bgwriter
+EOF
 
-echo "## pg_file_settings"
-psql $PSQL_OPTIONS -c "select * from pg_file_settings ;"
+echo "#### cache hit ratio"
+psql $PSQL_OPTIONS -x <<EOF
+SELECT sum(blks_hit) AS blks_hit, 
+       sum(blks_read) AS blks_read, 
+       CASE 
+          WHEN (sum(blks_read)+sum(blks_hit)) > 0
+	  THEN 100 * sum(blks_hit) / (sum(blks_read)+sum(blks_hit)) 
+	  ELSE 0 
+       END AS hit_ratio
+FROM pg_catalog.pg_stat_database
+EOF
 
-echo "## pg_hba_file_rules"
-psql $PSQL_OPTIONS -c "select * from pg_hba_file_rules;"
+echo "### replication"
 
-echo "## pg_stat_replication"
+echo "#### pg_stat_replication"
 psql $PSQL_OPTIONS -c "select * from pg_stat_replication;"
 
-echo "## pg_replication_slots"
+echo "#### pg_replication_slots"
 psql $PSQL_OPTIONS -c "select * from pg_replication_slots;"
 
-echo "## pg_publication"
+echo "#### pg_publication"
 psql $PSQL_OPTIONS -c "select * from pg_publication;"
 
-echo "## pg_subscription"
+echo "#### pg_subscription"
 psql $PSQL_OPTIONS -c "select * from pg_subscription;"
 
-echo "## pg_stat_bgwrite"
-psql $PSQL_OPTIONS -x <<EOF
-SELECT 100 * checkpoints_timed / (checkpoints_timed + checkpoints_req) AS pct_checkpoint_timed,
-       *
-  FROM pg_stat_bgwriter;
-EOF
+
+echo "## Per Database info"
 
 for d in $(psql -XAtc "SELECT datname 
     FROM pg_database 
@@ -374,9 +429,9 @@ do
 	continue
     fi
 
-echo "# Database $PGDATABASE"
+echo "### Database $PGDATABASE"
 
-echo "## Database info"
+echo "#### $PGDATABASE: Database info"
 psql $PSQL_OPTIONS <<EOF
 SELECT d.datname as "Name",
        pg_catalog.pg_get_userbyid(d.datdba) as "Owner",
@@ -395,9 +450,8 @@ SELECT d.datname as "Name",
  WHERE d.datname = '$PGDATABASE'
 EOF
 
-echo "### Database cache hit ratio"
-psql $PSQL_OPTIONS <<EOF
-\x
+echo "#### $PGDATABASE: Database cache hit ratio"
+psql $PSQL_OPTIONS -x <<EOF
 SELECT datname, 
        blks_hit, 
        blks_read, 
@@ -410,9 +464,8 @@ FROM pg_catalog.pg_stat_database
 WHERE datname = '$PGDATABASE';
 EOF
 
-echo "### Database commit ratio"
-psql $PSQL_OPTIONS <<EOF
-\x
+echo "#### $PGDATABASE: Database commit ratio"
+psql $PSQL_OPTIONS -x <<EOF
 SELECT datname, 
        xact_commit, 
        xact_rollback, 
@@ -422,9 +475,8 @@ SELECT datname,
    AND datname = '$PGDATABASE';
 EOF
 
-echo "### Database temp stats"
-psql $PSQL_OPTIONS <<EOF
-\x
+echo "#### $PGDATABASE: Database temp stats"
+psql $PSQL_OPTIONS -x <<EOF
 SELECT datname,
        temp_files, 
        pg_size_pretty(temp_bytes) as temp_file_size, 
@@ -436,9 +488,8 @@ FROM pg_stat_database
 WHERE datname = '$PGDATABASE';
 EOF
 
-echo "### Database Misc stats"
-psql $PSQL_OPTIONS <<EOF
-\x
+echo "#### $PGDATABASE: Database Misc stats"
+psql $PSQL_OPTIONS -x <<EOF
 SELECT datname,
        temp_files, 
        pg_size_pretty(temp_bytes), 
@@ -450,7 +501,7 @@ FROM pg_stat_database
 WHERE datname = '$PGDATABASE';
 EOF
 
-echo "## Schemas"
+echo "#### $PGDATABASE: Schemas"
 psql $PSQL_OPTIONS <<EOF
 SELECT n.nspname AS "Name",
        pg_catalog.pg_get_userbyid(n.nspowner) AS "Owner"
@@ -459,7 +510,7 @@ SELECT n.nspname AS "Name",
  ORDER BY 1;
 EOF
 
-echo "### objects per namespace"
+echo "##### $PGDATABASE: objects per namespace"
 psql $PSQL_OPTIONS <<EOF
 SELECT nspname, 
        rolname,
@@ -473,7 +524,7 @@ GROUP BY nspname, rolname
 ORDER BY 1, 2;
 EOF
 
-echo "### function and procedures per namespace"
+echo "##### $PGDATABASE: function and procedures per namespace"
 if [[ "$VERSION" -ge "1100" ]]; then
 psql $PSQL_OPTIONS <<EOF
 SELECT nspname, 
@@ -503,7 +554,7 @@ select nspname,
 EOF
 fi
 
-echo "## List of extensions"
+echo "##### $PGDATABASE: List of extensions"
 psql $PSQL_OPTIONS <<EOF
 SELECT e.extname AS "Name", 
        e.extversion AS "Version", 
@@ -518,8 +569,8 @@ SELECT e.extname AS "Name",
 ORDER BY 1;
 EOF
 
-echo "## relations"
-echo "### relkind, persistence size and count"
+echo "#### $PGDATABASE: relations"
+echo "##### $PGDATABASE: relkind, persistence size and count"
 psql $PSQL_OPTIONS <<EOF
 SELECT CASE relkind
           WHEN 'r' THEN 'ordinary table (r)'
@@ -547,7 +598,7 @@ GROUP BY GROUPING SETS ((1,2))
 ORDER BY 1,2;
 EOF
 
-echo "### relation depending on an extension"
+echo "##### $PGDATABASE: relation depending on an extension"
 psql $PSQL_OPTIONS <<EOF
 with etypes as
  (
@@ -592,7 +643,7 @@ EOF
 #ORDER BY count(*) desc;"
 
 
-echo "### size per am type"
+echo "##### $PGDATABASE: size per am type"
 psql $PSQL_OPTIONS <<EOF
 SELECT amname, 
        count(*), 
@@ -603,13 +654,13 @@ SELECT amname,
 GROUP BY 1;
 EOF
 
-echo "### Large object count"
+echo "##### $PGDATABASE: Large object count"
 psql $PSQL_OPTIONS <<EOF
 SELECT count(*) 
   FROM pg_largeobject;
 EOF
 
-echo "### Large object relpage"
+echo "##### $PGDATABASE: Large object relpage"
 psql $PSQL_OPTIONS <<EOF
 SELECT reltuples AS "tuple count", 
        relpages AS "page count", 
@@ -618,7 +669,7 @@ SELECT reltuples AS "tuple count",
  WHERE relname = 'pg_largeobject';
 EOF
 
-echo "### relation with custom options"
+echo "##### $PGDATABASE: relation with custom options"
 psql $PSQL_OPTIONS <<EOF
 SELECT nspname, 
        CASE relkind
@@ -641,7 +692,7 @@ SELECT nspname,
  ORDER BY 1, 3, 2;
 EOF
 
-echo "## relation needing freezing"
+echo "##### $PGDATABASE: relation needing freezing"
 psql $PSQL_OPTIONS <<EOF
 SELECT count(*)
   FROM pg_class
@@ -649,7 +700,7 @@ SELECT count(*)
    AND age(relfrozenxid) > current_setting('autovacuum_freeze_max_age')::integer;
 EOF
 
-echo "## table bloat size"
+echo "##### $PGDATABASE: table bloat size"
 psql $PSQL_OPTIONS <<EOF
 /* WARNING: executed with a non-superuser role, the query inspect only tables and materialized view (9.3+) you are granted to read.
 * This query is compatible with PostgreSQL 9.0 and more
@@ -727,7 +778,7 @@ GROUP BY 1;
 
 EOF
 
-echo "## table bloat details"
+echo "##### $PGDATABASE: table bloat details"
 psql $PSQL_OPTIONS <<EOF
 /* WARNING: executed with a non-superuser role, the query inspect only tables you are granted to read.
 * This query is compatible with PostgreSQL 9.0 and more
@@ -798,7 +849,7 @@ ORDER BY schemaname, tblname
  ) as plop order by 9 desc;
 EOF
 
-echo "### table access stats"
+echo "##### $PGDATABASE: table access stats"
 psql $PSQL_OPTIONS <<EOF
 SELECT relname,
        CASE WHEN (seq_scan + idx_scan) = 0 THEN 0 ELSE trunc(100. * seq_scan / (seq_scan + idx_scan), 2) END AS pct_seq_scan,
@@ -814,7 +865,7 @@ SELECT relname,
 ;
 EOF
 
-echo "### table operations"
+echo "##### $PGDATABASE: table operations"
 psql $PSQL_OPTIONS <<EOF
 SELECT relname,
        CASE WHEN (n_tup_ins + n_tup_upd + n_tup_del) = 0 THEN 0 ELSE trunc(100. * n_tup_ins / (n_tup_ins + n_tup_upd + n_tup_del), 2) END AS pct_insert ,
@@ -829,7 +880,7 @@ FROM pg_stat_user_tables
 
 EOF
 
-echo "### table cleanup"
+echo "##### $PGDATABASE: table cleanup"
 psql $PSQL_OPTIONS <<EOF
 SELECT relname,
        CASE WHEN n_live_tup = 0 THEN 0 ELSE  trunc(100. * n_live_tup / (n_live_tup + n_dead_tup), 2) END AS pct_alive,
@@ -844,8 +895,8 @@ FROM pg_stat_user_tables
 ;
 EOF
 
-echo "## indexes"
-echo "### index options"
+echo "#### $PGDATABASE: indexes"
+echo "##### $PGDATABASE: index options"
 psql $PSQL_OPTIONS <<EOF
 SELECT 
        count(*) as total,
@@ -859,7 +910,7 @@ FROM pg_index i
 JOIN pg_class c ON c.oid=i.indexrelid;
 EOF
 
-echo "### btree index bloat"
+echo "##### $PGDATABASE: btree index bloat"
 psql $PSQL_OPTIONS <<EOF
 -- This query must be exected by a superuser because it relies on the
 -- pg_statistic table.
@@ -962,7 +1013,7 @@ ORDER BY nspname, tblname, idxname
 GROUP BY 1;
 EOF
 
-echo "### btree index bloat details"
+echo "##### $PGDATABASE: btree index bloat details"
 psql $PSQL_OPTIoNS <<EOF
 
 -- This query must be exected by a superuser because it relies on the
@@ -1062,7 +1113,7 @@ ORDER BY nspname, tblname, idxname
  ) as plop order by 9 desc;
 EOF
 
-echo "### Index stats"
+echo "##### $PGDATABASE: Index stats"
 psql $PSQL_OPTIONS <<EOF 
 SELECT schemaname, 
        relname, 
@@ -1074,7 +1125,7 @@ SELECT schemaname,
   FROM pg_stat_user_indexes;
 EOF
 
-echo "### Index no access"
+echo "##### $PGDATABASE: Index no access"
 psql $PSQL_OPTIONS <<EOF 
 SELECT
   current_database() AS datname,
@@ -1091,14 +1142,14 @@ WHERE s.indexrelname NOT ILIKE '%fk%' -- on filtre les index sur clés étrangè
 ORDER BY s.schemaname, s.relname, s.indexrelname;
 EOF
 
-echo "## procedures & functions"
+echo "#### $PGDATABASE: procedures & functions"
 psql $PSQL_OPTIONS <<EOF 
 SELECT count(*)
   FROM pg_proc
  WHERE pronamespace=2200 or pronamespace>16383;
 EOF
 
-echo "### procedures & functions per namespace and kind in user space"
+echo "##### $PGDATABASE: procedures & functions per namespace and kind in user space"
 if [[ "$VERSION" -ge "1100" ]]; then
 psql $PSQL_OPTIONS <<EOF
 SELECT n.nspname, 
@@ -1138,7 +1189,7 @@ select n.nspname,
 EOF
 fi
 
-echo "### procedure per language in user space"
+echo "##### $PGDATABASE: procedure per language in user space"
 psql $PSQL_OPTIONS <<EOF
 SELECT n.nspname, l.lanname, count(*)
   FROM pg_proc p
@@ -1152,7 +1203,7 @@ SELECT n.nspname, l.lanname, count(*)
 EOF
 
 HAS_PG_STAT_STATEMENTS="$(psql -XtAc "SELECT true FROM pg_extension WHERE extname='pg_stat_statements'")"
-echo "## pg_stat_statements top 10 total_time"
+echo "#### $PGDATABASE: pg_stat_statements top 10 total_time"
 if [[ "$HAS_PG_STAT_STATEMENTS" == "t" ]]; then
 
 psql $PSQL_OPTIONS -c "SELECT queryid, calls, total_time, mean_time 
