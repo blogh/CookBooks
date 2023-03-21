@@ -2,14 +2,42 @@
 
 export LANG=C
 
-test -z "$1" || export PGDATA=$1
+Help()
+{
+   # Display Help
+   echo "Syntax: $0 [-D] [-p] [-O]"
+   echo "Description: This script extract data a from PostgreSQL. It must be used witht the user running the cluster."
+   echo "Options:"
+   echo "D     PGDATA"
+   echo "p     PGPORT"
+   echo "O     Skip orphaned files"
+   echo "h     Print this Help."
+}
+
+# fetch option values
+while getopts "D:p:Oh" option; do
+   case $option in
+      D) # source csv
+         export PGDATA=$OPTARG;;
+      p) # gnuplot csv
+         export PGPORT=$OPTARG;;
+      O) # gnuplot csv
+         SKIP_ORPHANED=1;;
+      h) # display Help
+         Help
+         exit;;
+      *)
+         Help
+         exit 2;;
+   esac
+done
+
+# Checks
 test -d "$PGDATA" || \
 {
     echo "La variable PGDATA doit être configurée ou sa valeur fournie en premier argument de ce script." 
     exit 1
 }
-
-test -z "$2" || export PGPORT=$2
 
 which pg_controldata >/dev/null 2>&1 || \
 {
@@ -23,9 +51,10 @@ which psql >/dev/null 2>&1 || \
     exit 1
 }
 
-## PostgreSQL
-
+## Audit
 echo "# PostgreSQL"
+echo "  * PGDATA: $PGDATA"
+echo "  * PGPORT: $PGPORT"
 echo
 echo "## Version des outils"
 psql -V
@@ -43,112 +72,6 @@ echo
 pg_controldata
 echo
 du -sh "$PGDATA"
-echo
-echo "## Orphaned Files"
-psql $PSQL_OPTIONS -c "
-WITH ver AS (
-  select 
-    current_setting('server_version_num') pgversion, 
-    v :: integer / 10000 || '.' || mod(v :: integer, 10000)/ 100 AS version 
-  FROM 
-    current_setting('server_version_num') v
-), 
-tbl_paths AS (
-  SELECT 
-    tbs.oid AS tbs_oid,
-    spcname, 
-    'pg_tblspc/' || tbs.oid || '/' || (
-      SELECT 
-        dir 
-      FROM 
-        pg_ls_dir(
-          'pg_tblspc/' || tbs.oid || '/', true, 
-          false
-        ) dir 
-      WHERE 
-        dir LIKE E'PG\\_' || ver.version || E'\\_%'
-    ) as tbl_path 
-  FROM 
-    pg_tablespace tbs, 
-    ver 
-  WHERE 
-    tbs.spcname NOT IN ('pg_default', 'pg_global')
-), 
-files AS (
-  SELECT 
-    d.oid AS database_oid, 
-    0 AS tbs_oid, 
-    'base/' || d.oid AS path, 
-    file_name AS file_name, 
-    substring(
-      file_name 
-      from 
-        E'[0-9]+'
-    ) AS base_name 
-  FROM 
-    pg_database d, 
-    pg_ls_dir('base/' || d.oid, true, false) AS file_name 
-  WHERE 
-    d.datname = current_database() 
-  UNION ALL 
-  SELECT 
-    d.oid, 
-    tbp.tbs_oid, 
-    tbl_path || '/' || d.oid, 
-    file_name, 
-    (
-      substring(
-        file_name 
-        from 
-          E'[0-9]+'
-      )
-    ) AS base_name 
-  FROM 
-    pg_database d, 
-    tbl_paths tbp, 
-    pg_ls_dir(
-      tbp.tbl_path || '/' || d.oid, true, false
-    ) AS file_name 
-  WHERE 
-    d.datname = current_database()
-), 
-orphans AS (
-  SELECT 
-    tbs_oid, 
-    base_name, 
-    file_name, 
-    current_setting('data_directory')|| '/' || path || '/' || file_name as orphaned_file, 
-    pg_filenode_relation (tbs_oid, base_name :: oid) as rel_without_pgclass 
-  FROM 
-    ver, 
-    files 
-    LEFT JOIN pg_class c ON (
-      c.relfilenode :: text = files.base_name 
-      OR (
-        c.oid :: text = files.base_name 
-        and c.relfilenode = 0 
-        and c.relname like 'pg_%'
-      )
-    ) 
-  WHERE 
-    c.oid IS null 
-    AND lower(file_name) NOT LIKE 'pg_%'
-) 
-SELECT 
-  orphaned_file, 
-  pg_size_pretty(
-    (
-      pg_stat_file(orphaned_file)
-    ).size
-  ) as file_size, 
-  (
-    pg_stat_file(orphaned_file)
-  ).modification as modification_date, 
-  current_database() 
-FROM 
-  orphans 
-WHERE 
-  rel_without_pgclass IS NULL;"
 echo
 echo "## Configuration"
 echo
@@ -430,6 +353,120 @@ do
     fi
 
 echo "### Database $PGDATABASE"
+
+if [[ -z "$SKIP_ORPHANED" ]]; then
+echo "#### $PGDATABASE: Orphaned Files"
+psql $PSQL_OPTIONS <<EOF
+WITH ver AS (
+  select
+    version_str AS pgversion,
+    CASE
+      WHEN version_str::integer < 100000
+      THEN version_str::integer / 10000 || '.' || mod(version_str::integer, 10000)/ 100
+      ELSE (version_str::integer / 10000)::text
+    END AS version
+  FROM
+    current_setting('server_version_num') version_str
+),
+tbl_paths AS (
+  SELECT 
+    tbs.oid AS tbs_oid,
+    spcname, 
+    'pg_tblspc/' || tbs.oid || '/' || (
+      SELECT 
+        dir 
+      FROM 
+        pg_ls_dir(
+          'pg_tblspc/' || tbs.oid || '/', true, 
+          false
+        ) dir 
+      WHERE 
+        dir LIKE E'PG\\_' || ver.version || E'\\_%'
+    ) as tbl_path 
+  FROM 
+    pg_tablespace tbs, 
+    ver 
+  WHERE 
+    tbs.spcname NOT IN ('pg_default', 'pg_global')
+), 
+files AS (
+  SELECT 
+    d.oid AS database_oid, 
+    0 AS tbs_oid, 
+    'base/' || d.oid AS path, 
+    file_name AS file_name, 
+    substring(
+      file_name 
+      from 
+        E'[0-9]+'
+    ) AS base_name 
+  FROM 
+    pg_database d, 
+    pg_ls_dir('base/' || d.oid, true, false) AS file_name 
+  WHERE 
+    d.datname = current_database() 
+  UNION ALL 
+  SELECT 
+    d.oid, 
+    tbp.tbs_oid, 
+    tbl_path || '/' || d.oid, 
+    file_name, 
+    (
+      substring(
+        file_name 
+        from 
+          E'[0-9]+'
+      )
+    ) AS base_name 
+  FROM 
+    pg_database d, 
+    tbl_paths tbp, 
+    pg_ls_dir(
+      tbp.tbl_path || '/' || d.oid, true, false
+    ) AS file_name 
+  WHERE 
+    d.datname = current_database()
+), 
+orphans AS (
+  SELECT 
+    tbs_oid, 
+    base_name, 
+    file_name, 
+    current_setting('data_directory')|| '/' || path || '/' || file_name as orphaned_file, 
+    pg_filenode_relation (tbs_oid, base_name :: oid) as rel_without_pgclass 
+  FROM 
+    ver, 
+    files 
+    LEFT JOIN pg_class c ON (
+      c.relfilenode :: text = files.base_name 
+      OR (
+        c.oid :: text = files.base_name 
+        and c.relfilenode = 0 
+        and c.relname like 'pg_%'
+      )
+    ) 
+  WHERE 
+    c.oid IS null 
+    AND lower(file_name) NOT LIKE 'pg_%'
+) 
+SELECT 
+  orphaned_file, 
+  pg_size_pretty(
+    (
+      pg_stat_file(orphaned_file)
+    ).size
+  ) as file_size, 
+  (
+    pg_stat_file(orphaned_file)
+  ).modification as modification_date, 
+  current_database() 
+FROM 
+  orphans 
+WHERE 
+  rel_without_pgclass IS NULL;
+EOF
+echo 
+fi
 
 echo "#### $PGDATABASE: Database info"
 psql $PSQL_OPTIONS <<EOF
@@ -1206,11 +1243,19 @@ HAS_PG_STAT_STATEMENTS="$(psql -XtAc "SELECT true FROM pg_extension WHERE extnam
 echo "#### $PGDATABASE: pg_stat_statements top 10 total_time"
 if [[ "$HAS_PG_STAT_STATEMENTS" == "t" ]]; then
 
-psql $PSQL_OPTIONS -c "SELECT queryid, calls, total_time, mean_time 
-FROM pg_stat_statements ORDER BY total_time desc limit 10;"
+if [[ "$VERSION" -ge "13" ]]; then
+	TTIME="total_exec_time" 
+	MTIME="mean_exec_time"
+else
+	TTIME="total_time"
+	MTIME="mean_time"
+fi
 
-psql $PSQL_OPTIONS -c "SELECT queryid, query 
-FROM pg_stat_statements ORDER BY total_time desc limit 10;"
+psql $PSQL_OPTIONS -x -c "SELECT queryid, query, calls, $TTIME , $MTIME
+FROM pg_stat_statements ORDER BY $TTIME desc limit 10;"
+
+psql $PSQL_OPTIONS -x -c "SELECT queryid, query, calls, $TTIME , $MTIME
+FROM pg_stat_statements ORDER BY $MTIME desc limit 10;"
 
 else
     echo
