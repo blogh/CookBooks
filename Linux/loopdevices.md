@@ -176,7 +176,7 @@ The loop device:
 sudo losetup --detach /dev/loop0
 ```
 
-Note: don't rm `/dev/loop0`. is you did you can recreate it with `sudo mknod -m
+Note: don't rm `/dev/loop0`. If you did, you can recreate it with `sudo mknod -m
 0660 /dev/loop0 b 7 0`.
 
 The file and mound point:
@@ -188,5 +188,5 @@ rm -Rf ~/tmp/delayed-folder
 
 ## Ressource
 
-<https://itsfoss.com/loop-device-linux/>
-<https://dev.to/an773/slow-io-simulation-in-linux-336e>
+* <https://itsfoss.com/loop-device-linux/>
+* <https://dev.to/an773/slow-io-simulation-in-linux-336e>
