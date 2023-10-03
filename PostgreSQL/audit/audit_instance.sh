@@ -5,23 +5,23 @@ export LANG=C
 Help()
 {
    # Display Help
-   echo "Syntax: $0 [-D] [-p] [-O]"
-   echo "Description: This script extract data a from PostgreSQL. It must be used witht the user running the cluster."
+   echo "Syntax: $0 [-D] [-p] [-O] [-h]"
+   echo "Description: This script extract data a from PostgreSQL. It must be used with the user running the cluster."
    echo "Options:"
-   echo "D     PGDATA"
-   echo "p     PGPORT"
-   echo "O     Skip orphaned files"
-   echo "h     Print this Help."
+   echo " -D   PGDATA"
+   echo " -p   PGPORT"
+   echo " -O   Skip orphaned files"
+   echo " -h   Print the help message."
 }
 
 # fetch option values
 while getopts "D:p:Oh" option; do
    case $option in
-      D) # source csv
+      D) # PGDATA
          export PGDATA=$OPTARG;;
-      p) # gnuplot csv
+      p) # PGPORT
          export PGPORT=$OPTARG;;
-      O) # gnuplot csv
+      O) # Skip orphan calculation
          SKIP_ORPHANED=1;;
       h) # display Help
          Help

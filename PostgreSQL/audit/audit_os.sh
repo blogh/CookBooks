@@ -2,6 +2,27 @@
 
 export LANG=C
 
+Help()
+{
+   # Display Help
+   echo "Syntax: $0 [-h]"
+   echo "Description: This script extract data a from the OS. On debian you might want to use a root user besauce we list the content of dmesg."
+   echo "Options:"
+   echo " -h   Print the help message."
+}
+
+# fetch option values
+while getopts "h" option; do
+   case $option in
+      h) # display Help
+         Help
+         exit;;
+#      *)
+#         Help
+#         exit 2;;
+   esac
+done
+
 ## Server
 echo "# Serveur"
 hostname
@@ -11,29 +32,33 @@ hostname
 # en tant que root
 echo "# Matériel"
 echo
-echo "## CPU"
+echo "## Matériel/CPU"
 echo
 lscpu
+echo 
+echo "## Matériel/NUMA"
 echo
-echo "## Mémoire"
+numactl --show
+echo
+echo "## Matériel/Mémoire"
 echo
 cat /proc/meminfo
 echo
 free -m
 echo
-echo "## Disques"
+echo "## Matériel/Disques"
 echo
 lsblk -o NAME,TYPE,SIZE,SCHED,ROTA,MOUNTPOINT
 echo
 echo
-echo "## Réseau"
+echo "## Matériel/Réseau"
 echo
 ip ad
 echo
 
 ## Système d'exploitation
 
-echo "# Système d'exploitation"
+echo "# OS"
 echo
 test -f /etc/os-release && cat /etc/os-release
 echo
@@ -45,7 +70,7 @@ test -f /etc/SuSE-release && cat /etc/SuSE-release
 echo
 uname -a
 echo
-echo "## Kernel config"
+echo "## OS/Kernel config"
 echo
 for f in /proc/sys/vm/dirty_ratio \
          /proc/sys/vm/dirty_background_ratio \
@@ -65,13 +90,13 @@ done
 ### /!\ trier ?? => /proc/sys/vm/nr_pdflush_threads ??
 ### page size
 echo
-echo "## FileSystem Config"
+echo "## OS/FileSystem Config"
 echo
 df -hT
 echo
 cat /etc/fstab
 echo 
-echo "## Packages"
+echo "## OS/Packages"
 echo 
 which rpm &>/dev/null && CMD="rpm -qa" || CMD="dpkg -l"
 echo
@@ -79,10 +104,10 @@ $CMD | grep postgres
 echo
 $CMD | grep kernel
 echo
-echo "## glibc"
+echo "## OS/glibc"
 echo
 ldd --version
 echo
-echo "## dmesg"
+echo "## OS/dmesg"
 echo
 dmesg
