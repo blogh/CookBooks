@@ -557,6 +557,7 @@ SELECT nspname,
   FROM pg_namespace n
   JOIN pg_roles r ON r.oid=n.nspowner
   LEFT JOIN pg_class c ON n.oid=c.relnamespace
+ WHERE n.nspname !~ '^pg_' AND n.nspname <> 'information_schema'
 GROUP BY nspname, rolname
 ORDER BY 1, 2;
 EOF
@@ -573,6 +574,7 @@ SELECT nspname,
   FROM pg_namespace n
   JOIN pg_roles r on r.oid=n.nspowner
   LEFT JOIN pg_proc p on n.oid=p.pronamespace
+ WHERE n.nspname !~ '^pg_' AND n.nspname <> 'information_schema'
  GROUP BY nspname, rolname
   ORDER BY 1, 2;
 EOF
@@ -586,6 +588,7 @@ select nspname,
   from pg_namespace n
   join pg_roles r on r.oid=n.nspowner
   left join pg_proc p on n.oid=p.pronamespace
+ WHERE n.nspname !~ '^pg_' AND n.nspname <> 'information_schema'
  group by nspname, rolname
  order by 1, 2;
 EOF
@@ -621,18 +624,21 @@ SELECT CASE relkind
           WHEN 'p' THEN 'partitioned table (p)'
           WHEN 'I' THEN 'partitioned index (I)'
           ELSE relkind::text
-      END,
-      CASE relpersistence
+       END,
+       CASE relpersistence
           WHEN 'p' THEN 'permanent'
           WHEN 'u' THEN 'unlogged'
           WHEN 't' THEN 'temporary'
           ELSE relpersistence::text
-      END,
-      count(*),
-      pg_size_pretty(sum(pg_table_size(oid)))
- FROM pg_class
-GROUP BY GROUPING SETS ((1,2))
-ORDER BY 1,2;
+       END,
+       count(*),
+       pg_size_pretty(sum(pg_table_size(c.oid)))
+  FROM pg_class c
+       LEFT JOIN pg_catalog.pg_namespace n 
+       ON n.oid = c.relnamespace 
+ WHERE n.nspname !~ '^pg_' AND n.nspname <> 'information_schema'
+ GROUP BY GROUPING SETS ((1,2))
+ ORDER BY 1,2;
 EOF
 
 echo "##### $PGDATABASE: relation depending on an extension"
